@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отчёт бухам</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        
+        .file-input-label {
+            transition: all 0.3s ease;
+        }
+        
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .file-preview-image {
+            max-height: 150px;
+            object-fit: contain;
+        }
+        
+        .payment-method-btn, .status-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .payment-method-btn.active, .status-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+        
+        .amount-input:focus + .currency-label {
+            border-color: #3b82f6;
+        }
+        
+        .status-badge {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .submit-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- Шапка приложения -->
+        <header class="mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800">
+                    <i class="fas fa-file-invoice-dollar text-blue-500 mr-3"></i>
+                    Отчёт бухам
+                </h1>
+            </div>
+           <p class="text-gray-500 mt-2">Учёт заказанных средств и форм оплаты. (перейти в&nbsp;<a href="https://art009bas.github.io/reestr/">Планер</a>)</p>
+
+
+        </header>
+        
+        <!-- Основной контент -->
+        <main>
+            <!-- Форма добавления отчёта -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 fade-in">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-plus-circle text-blue-500 mr-3"></i>
+                        Новый отчёт
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <form id="report-form">
+                        <!-- Сетка для полей формы -->
+                        <div class="grid form-grid gap-4 md:grid-cols-2">
+                            <!-- Сумма -->
+                            <div class="mb-4">
+                                <label class="block text-gray-700 mb-2">Сумма</label>
+                                <div class="relative">
+                                    <input type="number" id="amount" min="0" step="0.01" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent amount-input"
+                                           placeholder="0.00" required>
+                                    <span class="currency-label absolute right-3 top-2 text-gray-500">₽</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Дата -->
+                            <div class="mb-4">
+                                <label class="block text-gray-700 mb-2">Дата</label>
+                                <input type="date" id="date" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       required>
+                            </div>
+                            
+                            <!-- Тип оплаты -->
+                            <div class="mb-4">
+                                <label class="block text-gray-700 mb-2">Форма оплаты</label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" class="payment-method-btn active px-4 py-2 border border-gray-300 rounded-lg" data-method="cash">
+                                        <i class="fas fa-money-bill-wave mr-2"></i> Нал
+                                    </button>
+                                    <button type="button" class="payment-method-btn px-4 py-2 border border-gray-300 rounded-lg" data-method="invoice">
+                                        <i class="fas fa-file-invoice mr-2"></i> Счёт
+                                    </button>
+                                </div>
+                                <input type="hidden" id="payment-method" value="cash" required>
+                            </div>
+                            
+                            <!-- Оплачено своими средствами -->
+                            <div class="mb-4 md:col-span-2">
+                                <label class="flex items-center space-x-2">
+                                    <input type="checkbox" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span class="text-gray-700">Оплачено собственными средствами</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Комментарий -->
+                            <div class="mb-4 md:col-span-2">
+                                <label class="block text-gray-700 mb-2">Комментарий</label>
+                                <textarea id="comment" rows="3"
+                                          class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                          placeholder="На что были потрачены средства"></textarea>
+                            </div>
+                            
+                            <!-- Загрузка файла -->
+                            <div class="mb-4 md:col-span-2">
+                                <label class="block text-gray-700 mb-2">Документ (чек, счёт)</label>
+                                <label for="file-upload" class="file-input-label flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                        <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                                        <p class="mb-2 text-sm text-gray-500">
+                                            <span class="font-semibold">Нажмите для загрузки</span> или перетащите файл
+                                        </p>
+                                        <p class="text-xs text-gray-500">PNG, JPG, PDF (до 5MB)</p>
+                                    </div>
+                                    <input id="file-upload" type="file" class="hidden" accept="image/*,.pdf">
+                                </label>
+                                <div id="file-preview" class="mt-2 hidden">
+                                    <div class="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-file-image text-blue-500 mr-2 text-xl"></i>
+                                            <div>
+                                                <p id="file-name" class="text-sm font-medium text-gray-700"></p>
+                                                <p id="file-size" class="text-xs text-gray-500"></p>
+                                            </div>
+                                        </div>
+                                        <button type="button" id="remove-file" class="text-red-500 hover:text-red-700">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    <img id="file-preview-image" class="file-preview-image mt-2 rounded-lg hidden">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Кнопка отправки -->
+                        <div class="flex justify-end mt-6">
+                            <button type="submit" class="submit-btn px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center">
+                                <i class="fas fa-save mr-2"></i> Сохранить отчёт
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Журнал отчётов -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden fade-in">
+                <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-book text-blue-500 mr-3"></i>
+                        Журнал отчётов
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <div class="relative">
+                            <select id="report-filter" class="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                                <option value="all">Все</option>
+                                <option value="cash">Нал</option>
+                                <option value="invoice">Счёт</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <select id="status-filter" class="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                                <option value="all">Все статусы</option>
+                                <option value="ordered">Заказано</option>
+                                <option value="paid">Оплачено</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-4">
+                    <div id="reports-list" class="space-y-3">
+                        <!-- Здесь будут отображаться отчёты -->
+                        <div class="text-center py-8 text-gray-400">
+                            <i class="fas fa-inbox text-4xl mb-3"></i>
+                            <p>Нет отчётов</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Пагинация -->
+                    <div class="flex justify-between items-center mt-6 px-2">
+                        <button id="prev-page" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50" disabled>
+                            <i class="fas fa-chevron-left mr-2"></i> Назад
+                        </button>
+                        <span id="page-info" class="text-sm text-gray-600">Страница 1 из 1</span>
+                        <button id="next-page" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50" disabled>
+                            Вперед <i class="fas fa-chevron-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Статистика -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mt-8 fade-in">
+                <div class="p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-chart-pie text-blue-500 mr-3"></i>
+                        Статистика расходов
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div id="total-amount" class="text-2xl font-bold text-blue-600">0 ₽</div>
+                            <div class="text-gray-600 text-sm">Всего потрачено</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div id="cash-amount" class="text-2xl font-bold text-green-600">0 ₽</div>
+                            <div class="text-gray-600 text-sm">Наличные</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div id="invoice-amount" class="text-2xl font-bold text-purple-600">0 ₽</div>
+                            <div class="text-gray-600 text-sm">По счетам</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h3 class="text-md font-medium text-gray-700 mb-3">Распределение по месяцам</h3>
+                        <div id="monthly-chart" class="flex items-end h-40 space-x-2">
+                            <!-- График будет сгенерирован динамически -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Модальное окно просмотра документа -->
+    <div id="document-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden fade-in">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800" id="document-modal-title"></h3>
+                <button id="close-document-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto flex items-center justify-center">
+                <img id="document-modal-image" class="max-w-full max-h-[70vh] rounded-lg" src="" alt="Документ">
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно редактирования отчёта -->
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto fade-in">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">Редактирование отчёта</h3>
+                <button id="close-edit-modal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="edit-form">
+                    <input type="hidden" id="edit-id">
+                    
+                    <div class="grid form-grid gap-4 md:grid-cols-2">
+                        <!-- Сумма -->
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Сумма</label>
+                            <div class="relative">
+                                <input type="number" id="edit-amount" min="0" step="0.01" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent amount-input"
+                                       placeholder="0.00" required>
+                                <span class="currency-label absolute right-3 top-2 text-gray-500">₽</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Дата -->
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Дата</label>
+                            <input type="date" id="edit-date" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                   required>
+                        </div>
+                        
+                        <!-- Тип оплаты -->
+                        <div class="mb-4">
+                            <label class="block text-gray-700 mb-2">Форма оплаты</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" class="edit-payment-method-btn px-4 py-2 border border-gray-300 rounded-lg" data-method="cash">
+                                    <i class="fas fa-money-bill-wave mr-2"></i> Нал
+                                </button>
+                                <button type="button" class="edit-payment-method-btn px-4 py-2 border border-gray-300 rounded-lg" data-method="invoice">
+                                    <i class="fas fa-file-invoice mr-2"></i> Счёт
+                                </button>
+                            </div>
+                            <input type="hidden" id="edit-payment-method" value="cash" required>
+                        </div>
+                        
+                        <!-- Оплачено своими средствами -->
+                        <div class="mb-4 md:col-span-2">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" id="edit-self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="text-gray-700">Оплачено собственными средствами</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Комментарий -->
+                        <div class="mb-4 md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Комментарий</label>
+                            <textarea id="edit-comment" rows="3"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      placeholder="На что были потрачены средства"></textarea>
+                        </div>
+                        
+                        <!-- Загрузка файла -->
+                        <div class="mb-4 md:col-span-2">
+                            <label class="block text-gray-700 mb-2">Документ (чек, счёт)</label>
+                            <label for="edit-file-upload" class="file-input-label flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                                <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
+                                    <p class="mb-2 text-sm text-gray-500">
+                                        <span class="font-semibold">Нажмите для загрузки</span> или перетащите файл
+                                    </p>
+                                    <p class="text-xs text-gray-500">PNG, JPG, PDF (до 5MB)</p>
+                                </div>
+                                <input id="edit-file-upload" type="file" class="hidden" accept="image/*,.pdf">
+                            </label>
+                            <div id="edit-file-preview" class="mt-2 hidden">
+                                <div class="flex items-center justify-between bg-gray-100 p-2 rounded-lg">
+                                    <div class="flex items-center">
+                                        <i class="fas fa-file-image text-blue-500 mr-2 text-xl"></i>
+                                        <div>
+                                            <p id="edit-file-name" class="text-sm font-medium text-gray-700"></p>
+                                            <p id="edit-file-size" class="text-xs text-gray-500"></p>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="edit-remove-file" class="text-red-500 hover:text-red-700">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <img id="edit-file-preview-image" class="file-preview-image mt-2 rounded-lg hidden">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Кнопки редактирования -->
+                    <div class="flex justify-end space-x-3 mt-6">
+                        <button type="button" id="cancel-edit" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 flex items-center">
+                            <i class="fas fa-times mr-2"></i> Отмена
+                        </button>
+                        <button type="submit" class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center">
+                            <i class="fas fa-save mr-2"></i> Сохранить изменения
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Состояние приложения
+        const reportState = {
+            reports: [],
+            paymentMethod: 'cash',
+            status: 'ordered',
+            selfPaid: false,
+            currentPage: 1,
+            itemsPerPage: 5,
+            filter: 'all',
+            statusFilter: 'all',
+            editFile: null
+        };
+        
+        // Элементы DOM
+        const reportElements = {
+            form: document.getElementById('report-form'),
+            amountInput: document.getElementById('amount'),
+            dateInput: document.getElementById('date'),
+            paymentMethodInput: document.getElementById('payment-method'),
+            paymentMethodBtns: document.querySelectorAll('.payment-method-btn'),
+            statusInput: document.getElementById('status'),
+            statusBtns: document.querySelectorAll('.status-btn'),
+            selfPaidInput: document.getElementById('self-paid'),
+            commentInput: document.getElementById('comment'),
+            fileUpload: document.getElementById('file-upload'),
+            filePreview: document.getElementById('file-preview'),
+            fileName: document.getElementById('file-name'),
+            fileSize: document.getElementById('file-size'),
+            filePreviewImage: document.getElementById('file-preview-image'),
+            removeFileBtn: document.getElementById('remove-file'),
+            reportsList: document.getElementById('reports-list'),
+            reportFilter: document.getElementById('report-filter'),
+            statusFilter: document.getElementById('status-filter'),
+            documentModal: document.getElementById('document-modal'),
+            documentModalTitle: document.getElementById('document-modal-title'),
+            documentModalImage: document.getElementById('document-modal-image'),
+            closeDocumentModalBtn: document.getElementById('close-document-modal'),
+            editModal: document.getElementById('edit-modal'),
+            editForm: document.getElementById('edit-form'),
+            editId: document.getElementById('edit-id'),
+            editAmount: document.getElementById('edit-amount'),
+            editDate: document.getElementById('edit-date'),
+            editPaymentMethodInput: document.getElementById('edit-payment-method'),
+            editPaymentMethodBtns: document.querySelectorAll('.edit-payment-method-btn'),
+            editStatusInput: document.getElementById('edit-status'),
+            editStatusBtns: document.querySelectorAll('.edit-status-btn'),
+            editSelfPaidInput: document.getElementById('edit-self-paid'),
+            editComment: document.getElementById('edit-comment'),
+            editFileUpload: document.getElementById('edit-file-upload'),
+            editFilePreview: document.getElementById('edit-file-preview'),
+            editFileName: document.getElementById('edit-file-name'),
+            editFileSize: document.getElementById('edit-file-size'),
+            editFilePreviewImage: document.getElementById('edit-file-preview-image'),
+            editRemoveFileBtn: document.getElementById('edit-remove-file'),
+            closeEditModalBtn: document.getElementById('close-edit-modal'),
+            cancelEditBtn: document.getElementById('cancel-edit'),
+            prevPageBtn: document.getElementById('prev-page'),
+            nextPageBtn: document.getElementById('next-page'),
+            pageInfo: document.getElementById('page-info'),
+            totalAmount: document.getElementById('total-amount'),
+            cashAmount: document.getElementById('cash-amount'),
+            invoiceAmount: document.getElementById('invoice-amount'),
+            monthlyChart: document.getElementById('monthly-chart')
+        };
+        
+        // Инициализация приложения
+        function initReports() {
+            // Устанавливаем сегодняшнюю дату по умолчанию
+            const today = new Date().toISOString().split('T')[0];
+            reportElements.dateInput.value = today;
+            reportElements.editDate.value = today;
+            
+            // Загружаем данные из localStorage
+            loadReportsFromStorage();
+            
+            // Настройка обработчиков событий
+            setupReportEventListeners();
+            
+            // Инициализация пагинации
+            updatePagination();
+        }
+        
+        // Загрузка данных из localStorage
+        function loadReportsFromStorage() {
+            const savedReports = localStorage.getItem('reports');
+            if (savedReports) {
+                reportState.reports = JSON.parse(savedReports);
+                renderReports();
+                updateStatistics();
+            }
+        }
+        
+        // Сохранение данных в localStorage
+        function saveReportsToStorage() {
+            localStorage.setItem('reports', JSON.stringify(reportState.reports));
+        }
+        
+        // Настройка обработчиков событий
+        function setupReportEventListeners() {
+            // Переключение метода оплаты
+            reportElements.paymentMethodBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    reportElements.paymentMethodBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    reportState.paymentMethod = this.dataset.method;
+                    reportElements.paymentMethodInput.value = this.dataset.method;
+                });
+            });
+            
+            // Переключение метода оплаты в модальном окне редактирования
+            reportElements.editPaymentMethodBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    reportElements.editPaymentMethodBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    reportElements.editPaymentMethodInput.value = this.dataset.method;
+                });
+            });
+            
+            // Загрузка файла
+            reportElements.fileUpload.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const fileSize = formatFileSize(file.size);
+                    
+                    reportElements.fileName.textContent = file.name;
+                    reportElements.fileSize.textContent = fileSize;
+                    reportElements.filePreview.classList.remove('hidden');
+                    
+                    // Показываем превью для изображений
+                    if (file.type.match('image.*')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            reportElements.filePreviewImage.src = e.target.result;
+                            reportElements.filePreviewImage.classList.remove('hidden');
+                        }
+                        reader.readAsDataURL(file);
+                    } else {
+                        reportElements.filePreviewImage.classList.add('hidden');
+                    }
+                }
+            });
+            
+            // Удаление файла
+            reportElements.removeFileBtn.addEventListener('click', function() {
+                reportElements.fileUpload.value = '';
+                reportElements.filePreview.classList.add('hidden');
+                reportElements.filePreviewImage.classList.add('hidden');
+            });
+            
+            // Фильтрация отчетов
+            reportElements.reportFilter.addEventListener('change', function() {
+                reportState.filter = this.value;
+                reportState.currentPage = 1; // Сброс на первую страницу при изменении фильтра
+                renderReports();
+                updatePagination();
+            });
+            
+            // Фильтрация по статусу
+            reportElements.statusFilter.addEventListener('change', function() {
+                reportState.statusFilter = this.value;
+                reportState.currentPage = 1; // Сброс на первую страницу при изменении фильтра
+                renderReports();
+                updatePagination();
+            });
+            
+            // Просмотр документа
+            reportElements.closeDocumentModalBtn.addEventListener('click', function() {
+                reportElements.documentModal.classList.add('hidden');
+            });
+            
+            // Обработка отправки формы
+            reportElements.form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                let fileData = null;
+                if (reportElements.fileUpload.files[0]) {
+                    fileData = await getFileData(reportElements.fileUpload.files[0]);
+                }
+                
+                const newReport = {
+                    id: Date.now(),
+                    amount: parseFloat(reportElements.amountInput.value),
+                    date: reportElements.dateInput.value,
+                    paymentMethod: reportState.paymentMethod,
+                    status: 'ordered', // Все новые отчеты по умолчанию "Заказано"
+                    selfPaid: reportElements.selfPaidInput.checked,
+                    comment: reportElements.commentInput.value,
+                    fileName: reportElements.fileUpload.files[0]?.name || '',
+                    fileSize: reportElements.fileUpload.files[0] ? formatFileSize(reportElements.fileUpload.files[0].size) : '',
+                    fileType: reportElements.fileUpload.files[0]?.type || '',
+                    fileData: fileData
+                };
+                
+                reportState.reports.unshift(newReport);
+                saveReportsToStorage();
+                renderReports();
+                updateStatistics();
+                updatePagination();
+                
+                // Сброс формы
+                this.reset();
+                reportElements.filePreview.classList.add('hidden');
+                reportElements.filePreviewImage.classList.add('hidden');
+                reportElements.dateInput.value = new Date().toISOString().split('T')[0];
+                reportElements.selfPaidInput.checked = false;
+                
+                // Сброс активных кнопок
+                reportElements.paymentMethodBtns[0].click();
+                
+                // Показываем уведомление
+                showNotification('Отчёт успешно сохранён!', 'success');
+            });
+            
+            // Закрытие модального окна редактирования
+            reportElements.closeEditModalBtn.addEventListener('click', function() {
+                reportElements.editModal.classList.add('hidden');
+            });
+            
+            reportElements.cancelEditBtn.addEventListener('click', function() {
+                reportElements.editModal.classList.add('hidden');
+            });
+            
+            // Загрузка файла в модальном окне редактирования
+            reportElements.editFileUpload.addEventListener('change', function(e) {
+                if (this.files && this.files[0]) {
+                    const file = this.files[0];
+                    const fileSize = formatFileSize(file.size);
+                    
+                    reportElements.editFileName.textContent = file.name;
+                    reportElements.editFileSize.textContent = fileSize;
+                    reportElements.editFilePreview.classList.remove('hidden');
+                    
+                    // Сохраняем файл для последующего сохранения
+                    reportState.editFile = file;
+                    
+                    // Показываем превью для изображений
+                    if (file.type.match('image.*')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            reportElements.editFilePreviewImage.src = e.target.result;
+                            reportElements.editFilePreviewImage.classList.remove('hidden');
+                        }
+                        reader.readAsDataURL(file);
+                    } else {
+                        reportElements.editFilePreviewImage.classList.add('hidden');
+                    }
+                }
+            });
+            
+            // Удаление файла в модальном окне редактирования
+            reportElements.editRemoveFileBtn.addEventListener('click', function() {
+                reportElements.editFileUpload.value = '';
+                reportElements.editFilePreview.classList.add('hidden');
+                reportElements.editFilePreviewImage.classList.add('hidden');
+                reportState.editFile = null;
+            });
+            
+            // Обработка отправки формы редактирования
+            reportElements.editForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const reportId = parseInt(reportElements.editId.value);
+                const reportIndex = reportState.reports.findIndex(r => r.id === reportId);
+                
+                if (reportIndex !== -1) {
+                    let fileData = reportState.reports[reportIndex].fileData;
+                    let fileName = reportState.reports[reportIndex].fileName;
+                    let fileSize = reportState.reports[reportIndex].fileSize;
+                    let fileType = reportState.reports[reportIndex].fileType;
+                    
+                    // Обновляем файл, если был загружен новый
+                    if (reportState.editFile) {
+                        fileData = await getFileData(reportState.editFile);
+                        fileName = reportState.editFile.name;
+                        fileSize = formatFileSize(reportState.editFile.size);
+                        fileType = reportState.editFile.type;
+                    }
+                    
+                    const updatedReport = {
+                        ...reportState.reports[reportIndex],
+                        amount: parseFloat(reportElements.editAmount.value),
+                        date: reportElements.editDate.value,
+                        paymentMethod: reportElements.editPaymentMethodInput.value,
+                        selfPaid: reportElements.editSelfPaidInput.checked,
+                        comment: reportElements.editComment.value,
+                        fileName: fileName,
+                        fileSize: fileSize,
+                        fileType: fileType,
+                        fileData: fileData
+                    };
+                    
+                    reportState.reports[reportIndex] = updatedReport;
+                    saveReportsToStorage();
+                    renderReports();
+                    updateStatistics();
+                    
+                    // Закрываем модальное окно
+                    reportElements.editModal.classList.add('hidden');
+                    reportState.editFile = null;
+                    
+                    // Показываем уведомление
+                    showNotification('Отчёт успешно обновлён!', 'success');
+                }
+            });
+            
+            // Пагинация - предыдущая страница
+            reportElements.prevPageBtn.addEventListener('click', function() {
+                if (reportState.currentPage > 1) {
+                    reportState.currentPage--;
+                    renderReports();
+                    updatePagination();
+                }
+            });
+            
+            // Пагинация - следующая страница
+            reportElements.nextPageBtn.addEventListener('click', function() {
+                const filteredReports = getFilteredReports();
+                const totalPages = Math.ceil(filteredReports.length / reportState.itemsPerPage);
+                
+                if (reportState.currentPage < totalPages) {
+                    reportState.currentPage++;
+                    renderReports();
+                    updatePagination();
+                }
+            });
+        }
+        
+        // Получение отфильтрованных отчетов
+        function getFilteredReports() {
+            let filteredReports = [...reportState.reports];
+            
+            // Фильтрация по типу оплаты
+            if (reportState.filter !== 'all') {
+                filteredReports = filteredReports.filter(r => r.paymentMethod === reportState.filter);
+            }
+            
+            // Фильтрация по статусу
+            if (reportState.statusFilter !== 'all') {
+                filteredReports = filteredReports.filter(r => r.status === reportState.statusFilter);
+            }
+            
+            return filteredReports;
+        }
+        
+        // Получение данных файла
+        function getFileData(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    resolve(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // Рендер списка отчетов с пагинацией
+        function renderReports() {
+            const filteredReports = getFilteredReports();
+            
+            // Пагинация
+            const startIndex = (reportState.currentPage - 1) * reportState.itemsPerPage;
+            const endIndex = startIndex + reportState.itemsPerPage;
+            const paginatedReports = filteredReports.slice(startIndex, endIndex);
+            
+            reportElements.reportsList.innerHTML = '';
+            
+            if (paginatedReports.length === 0) {
+                reportElements.reportsList.innerHTML = `
+                    <div class="text-center py-8 text-gray-400">
+                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                        <p>Нет отчётов</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            paginatedReports.forEach(report => {
+                const date = new Date(report.date);
+                const formattedDate = date.toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                // Определяем классы и иконки для типа оплаты
+                const paymentMethodClass = report.paymentMethod === 'cash' ? 
+                    'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+                
+                const paymentMethodIcon = report.paymentMethod === 'cash' ? 
+                    'fa-money-bill-wave' : 'fa-file-invoice';
+                
+                // Определяем классы и иконки для статуса
+                const statusClass = report.status === 'ordered' ? 
+                    'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800';
+                
+                const statusIcon = report.status === 'ordered' ? 
+                    'fa-shopping-cart' : 'fa-check-circle';
+                
+                // Метка для собственных средств
+                const selfPaidBadge = report.selfPaid ? `
+                    <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full mr-2">
+                        <i class="fas fa-user mr-1"></i> Свои
+                    </span>
+                ` : '';
+                
+                // Превью файла
+                const filePreview = report.fileName ? `
+                    <button class="text-blue-500 hover:text-blue-700 text-sm flex items-center view-document-btn" 
+                            data-file-name="${report.fileName}" data-file-type="${report.fileType}" data-file-data="${report.fileData || ''}">
+                        <i class="fas fa-paperclip mr-1"></i> ${report.fileName}
+                    </button>
+                ` : '';
+                
+                const reportElement = document.createElement('div');
+                reportElement.className = 'report-item bg-gray-50 p-4 rounded-lg border border-gray-200 slide-in';
+                reportElement.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="font-bold text-lg text-blue-600">${report.amount.toLocaleString('ru-RU')} ₽</div>
+                            <div class="text-sm text-gray-500 mb-1">${formattedDate}</div>
+                            <div class="text-sm text-gray-700 mb-2">${report.comment || 'Без комментария'}</div>
+                            <div class="flex flex-wrap items-center gap-1">
+                                <span class="px-2 py-1 ${paymentMethodClass} text-xs rounded-full">
+                                    <i class="fas ${paymentMethodIcon} mr-1"></i> ${report.paymentMethod === 'cash' ? 'Нал' : 'Счёт'}
+                                </span>
+                                <span class="status-badge px-2 py-1 ${statusClass} text-xs rounded-full" data-id="${report.id}">
+                                    <i class="fas ${statusIcon} mr-1"></i> ${report.status === 'ordered' ? 'Заказано' : 'Оплачено'}
+                                </span>
+                                ${selfPaidBadge}
+                                ${filePreview}
+                            </div>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button class="edit-report-btn text-gray-400 hover:text-blue-500" data-id="${report.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-report-btn text-gray-400 hover:text-red-500" data-id="${report.id}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                reportElements.reportsList.appendChild(reportElement);
+            });
+            
+            // Добавляем обработчики для кнопок просмотра документа
+            document.querySelectorAll('.view-document-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const fileName = this.dataset.fileName;
+                    const fileType = this.dataset.fileType;
+                    const fileData = this.dataset.fileData;
+                    
+                    reportElements.documentModalTitle.textContent = fileName;
+                    
+                    if (fileType.match('image.*') && fileData) {
+                        reportElements.documentModalImage.src = fileData;
+                        reportElements.documentModalImage.classList.remove('hidden');
+                    } else {
+                        reportElements.documentModalImage.src = '';
+                        reportElements.documentModalImage.classList.add('hidden');
+                    }
+                    
+                    reportElements.documentModal.classList.remove('hidden');
+                });
+            });
+            
+            // Добавляем обработчики для кнопок редактирования
+            document.querySelectorAll('.edit-report-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const reportId = parseInt(this.dataset.id);
+                    openEditModal(reportId);
+                });
+            });
+            
+            // Добавляем обработчики для кнопок удаления
+            document.querySelectorAll('.delete-report-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const reportId = parseInt(this.dataset.id);
+                    deleteReport(reportId);
+                });
+            });
+            
+            // Добавляем обработчики для кнопок изменения статуса
+            document.querySelectorAll('.status-badge').forEach(badge => {
+                badge.addEventListener('click', function() {
+                    const reportId = parseInt(this.dataset.id);
+                    toggleReportStatus(reportId);
+                });
+            });
+        }
+        
+        // Обновление пагинации
+        function updatePagination() {
+            const filteredReports = getFilteredReports();
+            const totalPages = Math.ceil(filteredReports.length / reportState.itemsPerPage);
+            
+            // Обновляем информацию о странице
+            reportElements.pageInfo.textContent = `Страница ${reportState.currentPage} из ${totalPages || 1}`;
+            
+            // Обновляем состояние кнопок
+            reportElements.prevPageBtn.disabled = reportState.currentPage <= 1;
+            reportElements.nextPageBtn.disabled = reportState.currentPage >= totalPages;
+            
+            // Если нет отчетов, скрываем пагинацию
+            if (filteredReports.length === 0) {
+                reportElements.prevPageBtn.style.display = 'none';
+                reportElements.nextPageBtn.style.display = 'none';
+                reportElements.pageInfo.style.display = 'none';
+            } else {
+                reportElements.prevPageBtn.style.display = 'block';
+                reportElements.nextPageBtn.style.display = 'block';
+                reportElements.pageInfo.style.display = 'block';
+            }
+        }
+        
+        // Переключение статуса отчета
+        function toggleReportStatus(reportId) {
+            const reportIndex = reportState.reports.findIndex(r => r.id === reportId);
+            if (reportIndex !== -1) {
+                const currentStatus = reportState.reports[reportIndex].status;
+                const newStatus = currentStatus === 'ordered' ? 'paid' : 'ordered';
+                
+                reportState.reports[reportIndex].status = newStatus;
+                saveReportsToStorage();
+                renderReports();
+                updateStatistics();
+                
+                showNotification(`Статус изменён на "${newStatus === 'ordered' ? 'Заказано' : 'Оплачено'}"`, 'success');
+            }
+        }
+        
+        // Открытие модального окна редактирования
+        function openEditModal(reportId) {
+            const report = reportState.reports.find(r => r.id === reportId);
+            if (!report) return;
+            
+            // Заполняем форму данными отчёта
+            reportElements.editId.value = report.id;
+            reportElements.editAmount.value = report.amount;
+            reportElements.editDate.value = report.date;
+            reportElements.editComment.value = report.comment || '';
+            reportElements.editSelfPaidInput.checked = report.selfPaid || false;
+            
+            // Устанавливаем активную кнопку метода оплаты
+            reportElements.editPaymentMethodBtns.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.method === report.paymentMethod) {
+                    btn.classList.add('active');
+                    reportElements.editPaymentMethodInput.value = report.paymentMethod;
+                }
+            });
+            
+            // Показываем превью файла, если он есть
+            if (report.fileName) {
+                reportElements.editFileName.textContent = report.fileName;
+                reportElements.editFileSize.textContent = report.fileSize;
+                reportElements.editFilePreview.classList.remove('hidden');
+                
+                if (report.fileType.match('image.*') && report.fileData) {
+                    reportElements.editFilePreviewImage.src = report.fileData;
+                    reportElements.editFilePreviewImage.classList.remove('hidden');
+                } else {
+                    reportElements.editFilePreviewImage.classList.add('hidden');
+                }
+            } else {
+                reportElements.editFilePreview.classList.add('hidden');
+                reportElements.editFilePreviewImage.classList.add('hidden');
+            }
+            
+            // Открываем модальное окно
+            reportElements.editModal.classList.remove('hidden');
+        }
+        
+        // Удаление отчета
+        function deleteReport(id) {
+            if (confirm('Вы уверены, что хотите удалить этот отчёт?')) {
+                reportState.reports = reportState.reports.filter(r => r.id !== id);
+                saveReportsToStorage();
+                renderReports();
+                updateStatistics();
+                updatePagination();
+                showNotification('Отчёт удалён', 'error');
+            }
+        }
+        
+        // Обновление статистики
+        function updateStatistics() {
+            const totalAmount = reportState.reports.reduce((sum, report) => sum + report.amount, 0);
+            const cashAmount = reportState.reports
+                .filter(r => r.paymentMethod === 'cash')
+                .reduce((sum, report) => sum + report.amount, 0);
+            const invoiceAmount = reportState.reports
+                .filter(r => r.paymentMethod === 'invoice')
+                .reduce((sum, report) => sum + report.amount, 0);
+            
+            // Обновляем общие суммы
+            reportElements.totalAmount.textContent = `${totalAmount.toLocaleString('ru-RU')} ₽`;
+            reportElements.cashAmount.textContent = `${cashAmount.toLocaleString('ru-RU')} ₽`;
+            reportElements.invoiceAmount.textContent = `${invoiceAmount.toLocaleString('ru-RU')} ₽`;
+            
+            // Обновляем график по месяцам
+            updateMonthlyChart();
+        }
+        
+        // Обновление графика по месяцам
+        function updateMonthlyChart() {
+            // Создаем данные для графика
+            const monthlyData = {};
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            
+            // Инициализируем данные для последних 6 месяцев
+            for (let i = 5; i >= 0; i--) {
+                const date = new Date(currentYear, now.getMonth() - i, 1);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                const monthName = date.toLocaleDateString('ru-RU', { month: 'short' });
+                monthlyData[monthKey] = {
+                    monthName: monthName,
+                    total: 0
+                };
+            }
+            
+            // Заполняем данные из отчетов
+            reportState.reports.forEach(report => {
+                const reportDate = new Date(report.date);
+                const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
+                
+                if (monthlyData[monthKey]) {
+                    monthlyData[monthKey].total += report.amount;
+                }
+            });
+            
+            // Находим максимальную сумму для масштабирования графика
+            const maxAmount = Math.max(...Object.values(monthlyData).map(m => m.total), 1);
+            
+            // Очищаем график
+            reportElements.monthlyChart.innerHTML = '';
+            
+            // Создаем столбцы графика
+            Object.entries(monthlyData).forEach(([key, data]) => {
+                const heightPercent = (data.total / maxAmount) * 100;
+                
+                const column = document.createElement('div');
+                column.className = 'flex-1 flex flex-col items-center';
+                column.innerHTML = `
+                    <div class="w-full bg-blue-200 rounded-t" style="height: ${heightPercent}%;"></div>
+                    <div class="text-xs text-gray-500 mt-1">${data.monthName}</div>
+                `;
+                
+                reportElements.monthlyChart.appendChild(column);
+            });
+        }
+        
+        // Форматирование размера файла
+        function formatFileSize(bytes) {
+            if (!bytes) return '0 Bytes';
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Показать уведомление
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg text-white ${
+                type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } animate-bounce`;
+            notification.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+                ${message}
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.classList.remove('animate-bounce');
+                notification.classList.add('opacity-0', 'transition-opacity', 'duration-500');
+                setTimeout(() => notification.remove(), 500);
+            }, 3000);
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', initReports);
+    </script>
+</body>
+</html>
