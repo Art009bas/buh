@@ -84,8 +84,6 @@
                 </h1>
             </div>
            <p class="text-gray-500 mt-2">Учёт заказанных средств и форм оплаты. (перейти в&nbsp;<a href="https://art009bas.github.io/reestr/">Планер</a>)</p>
-
-
         </header>
         
         <!-- Основной контент -->
@@ -123,9 +121,9 @@
                             </div>
                             
                             <!-- Тип оплаты -->
-                            <div class="mb-4">
+                            <div class="mb-4 md:col-span-2">
                                 <label class="block text-gray-700 mb-2">Форма оплаты</label>
-                                <div class="grid grid-cols-2 gap-2">
+                                <div class="grid grid-cols-2 gap-2 w-full">
                                     <button type="button" class="payment-method-btn active px-4 py-2 border border-gray-300 rounded-lg" data-method="cash">
                                         <i class="fas fa-money-bill-wave mr-2"></i> Нал
                                     </button>
@@ -214,6 +212,7 @@
                         <div class="relative">
                             <select id="status-filter" class="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
                                 <option value="all">Все статусы</option>
+                                <option value="not_ordered">Не заказано</option>
                                 <option value="ordered">Заказано</option>
                                 <option value="paid">Оплачено</option>
                             </select>
@@ -331,9 +330,9 @@
                         </div>
                         
                         <!-- Тип оплаты -->
-                        <div class="mb-4">
+                        <div class="mb-4 md:col-span-2">
                             <label class="block text-gray-700 mb-2">Форма оплаты</label>
-                            <div class="grid grid-cols-2 gap-2">
+                            <div class="grid grid-cols-2 gap-2 w-full">
                                 <button type="button" class="edit-payment-method-btn px-4 py-2 border border-gray-300 rounded-lg" data-method="cash">
                                     <i class="fas fa-money-bill-wave mr-2"></i> Нал
                                 </button>
@@ -368,7 +367,7 @@
                                     <i class="fas fa-cloud-upload-alt text-3xl text-gray-400 mb-2"></i>
                                     <p class="mb-2 text-sm text-gray-500">
                                         <span class="font-semibold">Нажмите для загрузки</span> или перетащите файл
-                                    </p>
+                                        </p>
                                     <p class="text-xs text-gray-500">PNG, JPG, PDF (до 5MB)</p>
                                 </div>
                                 <input id="edit-file-upload" type="file" class="hidden" accept="image/*,.pdf">
@@ -410,7 +409,7 @@
         const reportState = {
             reports: [],
             paymentMethod: 'cash',
-            status: 'ordered',
+            status: 'not_ordered', // По умолчанию "Не заказано"
             selfPaid: false,
             currentPage: 1,
             itemsPerPage: 5,
@@ -590,7 +589,7 @@
                     amount: parseFloat(reportElements.amountInput.value),
                     date: reportElements.dateInput.value,
                     paymentMethod: reportState.paymentMethod,
-                    status: 'ordered', // Все новые отчеты по умолчанию "Заказано"
+                    status: 'not_ordered', // По умолчанию "Не заказано"
                     selfPaid: reportElements.selfPaidInput.checked,
                     comment: reportElements.commentInput.value,
                     fileName: reportElements.fileUpload.files[0]?.name || '',
@@ -798,11 +797,29 @@
                     'fa-money-bill-wave' : 'fa-file-invoice';
                 
                 // Определяем классы и иконки для статуса
-                const statusClass = report.status === 'ordered' ? 
-                    'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800';
+                let statusClass, statusIcon, statusText;
                 
-                const statusIcon = report.status === 'ordered' ? 
-                    'fa-shopping-cart' : 'fa-check-circle';
+                switch(report.status) {
+                    case 'not_ordered':
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusIcon = 'fa-times-circle';
+                        statusText = 'Не заказано';
+                        break;
+                    case 'ordered':
+                        statusClass = 'bg-yellow-100 text-yellow-800';
+                        statusIcon = 'fa-shopping-cart';
+                        statusText = 'Заказано';
+                        break;
+                    case 'paid':
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusIcon = 'fa-check-circle';
+                        statusText = 'Оплачено';
+                        break;
+                    default:
+                        statusClass = 'bg-gray-100 text-gray-800';
+                        statusIcon = 'fa-question-circle';
+                        statusText = 'Неизвестно';
+                }
                 
                 // Метка для собственных средств
                 const selfPaidBadge = report.selfPaid ? `
@@ -832,7 +849,7 @@
                                     <i class="fas ${paymentMethodIcon} mr-1"></i> ${report.paymentMethod === 'cash' ? 'Нал' : 'Счёт'}
                                 </span>
                                 <span class="status-badge px-2 py-1 ${statusClass} text-xs rounded-full" data-id="${report.id}">
-                                    <i class="fas ${statusIcon} mr-1"></i> ${report.status === 'ordered' ? 'Заказано' : 'Оплачено'}
+                                    <i class="fas ${statusIcon} mr-1"></i> ${statusText}
                                 </span>
                                 ${selfPaidBadge}
                                 ${filePreview}
@@ -926,15 +943,46 @@
         function toggleReportStatus(reportId) {
             const reportIndex = reportState.reports.findIndex(r => r.id === reportId);
             if (reportIndex !== -1) {
+                let newStatus;
                 const currentStatus = reportState.reports[reportIndex].status;
-                const newStatus = currentStatus === 'ordered' ? 'paid' : 'ordered';
+                
+                // Циклическое переключение статусов: not_ordered -> ordered -> paid -> not_ordered
+                switch(currentStatus) {
+                    case 'not_ordered':
+                        newStatus = 'ordered';
+                        break;
+                    case 'ordered':
+                        newStatus = 'paid';
+                        break;
+                    case 'paid':
+                        newStatus = 'not_ordered';
+                        break;
+                    default:
+                        newStatus = 'not_ordered';
+                }
                 
                 reportState.reports[reportIndex].status = newStatus;
                 saveReportsToStorage();
                 renderReports();
                 updateStatistics();
                 
-                showNotification(`Статус изменён на "${newStatus === 'ordered' ? 'Заказано' : 'Оплачено'}"`, 'success');
+                // Определяем текст статуса для уведомления
+                let statusText;
+                switch(newStatus) {
+                    case 'not_ordered':
+                        statusText = 'Не заказано';
+                        break;
+                    case 'ordered':
+                        statusText = 'Заказано';
+                        break;
+                    case 'paid':
+                        statusText = 'Оплачено';
+                        break;
+                    default:
+                        statusText = 'Неизвестно';
+                }
+                
+                showNotification(`Статус изменён на "${statusText}"`, 'success');
             }
         }
         
