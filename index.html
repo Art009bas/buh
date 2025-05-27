@@ -529,12 +529,13 @@
             
             // Настройка обработчиков событий
             setupReportEventListeners();
-            
+
+                      
             // Инициализация пагинации
             updatePagination();
             
             // Сворачиваем форму нового отчёта при инициализации
-            toggleNewReportForm();
+            toggleNewReportForm(false); 
         }
         
         // Загрузка данных из localStorage
@@ -789,17 +790,21 @@
         }
         
         // Переключение состояния формы нового отчёта
-        function toggleNewReportForm() {
-            reportState.newReportExpanded = !reportState.newReportExpanded;
-            
-            if (reportState.newReportExpanded) {
-                reportElements.newReportContent.classList.add('expanded');
-                reportElements.newReportChevron.classList.add('rotate-180');
-            } else {
-                reportElements.newReportContent.classList.remove('expanded');
-                reportElements.newReportChevron.classList.remove('rotate-180');
-            }
-        }
+        function toggleNewReportForm(forceState = null) {
+    if (forceState !== null) {
+        reportState.newReportExpanded = forceState;
+    } else {
+        reportState.newReportExpanded = !reportState.newReportExpanded;
+    }
+    
+    if (reportState.newReportExpanded) {
+        reportElements.newReportContent.classList.add('expanded');
+        reportElements.newReportChevron.classList.add('rotate-180');
+    } else {
+        reportElements.newReportContent.classList.remove('expanded');
+        reportElements.newReportChevron.classList.remove('rotate-180');
+    }
+}
         
         // Получение отфильтрованных отчетов
         function getFilteredReports() {
