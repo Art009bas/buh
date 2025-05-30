@@ -62,15 +62,16 @@
             transform: scale(1.05);
         }
         
-        .collapsible-content {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        
-        .collapsible-content.expanded {
-            max-height: 1000px; /* Достаточно большое значение для анимации */
-        }
+   .collapsible-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.collapsible-content.expanded {
+    max-height: 1000px; /* достаточно, чтобы вместить форму */
+    transition: max-height 0.5s ease-in-out;
+}
         
         .reserve-balance {
             background: linear-gradient(45deg, #4f46e5, #8b5cf6);
@@ -1075,25 +1076,28 @@ if (selfPaidCheckbox && useReserveCheckbox) {
             });
             
             // Переключение состояния формы нового отчёта
-            reportElements.newReportHeader.addEventListener('click', toggleNewReportForm);
+            reportElements.newReportHeader.addEventListener('click', () => toggleNewReportForm());
         }
         
         // Переключение состояния формы нового отчёта
-        function toggleNewReportForm(forceState = null) {
-            if (forceState !== null) {
-                reportState.newReportExpanded = forceState;
-            } else {
-                reportState.newReportExpanded = !reportState.newReportExpanded;
-            }
-            
-            if (reportState.newReportExpanded) {
-                reportElements.newReportContent.classList.add('expanded');
-                reportElements.newReportChevron.classList.add('rotate-180');
-            } else {
-                reportElements.newReportContent.classList.remove('expanded');
-                reportElements.newReportChevron.classList.remove('rotate-180');
-            }
+      function toggleNewReportForm(forceState = null) {
+    if (forceState !== null) {
+        reportState.newReportExpanded = forceState;
+    } else {
+        reportState.newReportExpanded = !reportState.newReportExpanded;
+    }
+
+    // Анимация через requestAnimationFrame для стабильности
+    requestAnimationFrame(() => {
+        if (reportState.newReportExpanded) {
+            reportElements.newReportContent.classList.add('expanded');
+            reportElements.newReportChevron.classList.add('rotate-180');
+        } else {
+            reportElements.newReportContent.classList.remove('expanded');
+            reportElements.newReportChevron.classList.remove('rotate-180');
         }
+    });
+}
         
         // Получение отфильтрованных отчетов
         function getFilteredReports() {
@@ -1184,6 +1188,7 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                         statusText = 'Неизвестно';
                 }
                 
+                
                 // Метка для собственных средств
                 const selfPaidBadge = report.selfPaid ? `
                     <span class="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full mr-2">
@@ -1215,16 +1220,20 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                             <div class="text-sm text-gray-500 mb-1">${formattedDate}</div>
                             <div class="text-sm text-gray-700 mb-2">${report.comment || 'Без комментария'}</div>
                             <div class="flex flex-wrap items-center gap-1">
-                                <span class="px-2 py-1 ${paymentMethodClass} text-xs rounded-full">
-                                    <i class="fas ${paymentMethodIcon} mr-1"></i> ${report.paymentMethod === 'cash' ? 'Нал' : 'Счёт'}
-                                </span>
-                                <span class="status-badge px-2 py-1 ${statusClass} text-xs rounded-full" data-id="${report.id}">
-                                    <i class="fas ${statusIcon} mr-1"></i> ${statusText}
-                                </span>
-                                ${selfPaidBadge}
-                                ${reserveBadge}
-                                ${filePreview}
-                            </div>
+    <span class="px-2 py-1 ${paymentMethodClass} text-xs rounded-full">
+        <i class="fas ${paymentMethodIcon} mr-1"></i> ${report.paymentMethod === 'cash' ? 'Нал' : 'Счёт'}
+    </span>
+    
+    <!-- Статус показываем только если usedReserve === false -->
+    ${report.usedReserve ? '' : `
+    <span class="status-badge px-2 py-1 ${statusClass} text-xs rounded-full" data-id="${report.id}">
+        <i class="fas ${statusIcon} mr-1"></i> ${statusText}
+    </span>`}
+    
+    ${selfPaidBadge}
+    ${reserveBadge}
+    ${filePreview}
+</div>
                         </div>
                         <div class="flex space-x-2">
                             <button class="edit-report-btn text-gray-400 hover:text-blue-500" data-id="${report.id}">
