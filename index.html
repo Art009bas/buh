@@ -154,17 +154,17 @@
                                 </div>
                                 
                                <!-- Оплачено своими средствами -->
-<div class="mb-2 md:col-span-2">
+<div class="mb-4 md:col-span-2">
     <label class="flex items-center space-x-2">
-        <input type="radio" name="payment-source" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <input type="checkbox" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
         <span class="text-gray-700">Оплачено собственными средствами</span>
     </label>
 </div>
 
 <!-- Оплачено средствами запаса -->
-<div class="mb-2 md:col-span-2">
+<div class="mb-4 md:col-span-2" id="use-reserve-container">
     <label class="flex items-center space-x-2">
-        <input type="radio" name="payment-source" id="use-reserve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <input type="checkbox" id="use-reserve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
         <span class="text-gray-700">Оплата средствами запаса</span>
     </label>
 </div>
@@ -687,11 +687,12 @@
             
             // Показываем или скрываем чекбокс в зависимости от наличия средств запаса
             if (reportState.reserveAmount > 0) {
-                reportElements.useReserveContainer.style.display = 'block';
-            } else {
-                reportElements.useReserveContainer.style.display = 'none';
-                reportElements.useReserveCheckbox.checked = false;
-            }
+    reportElements.useReserveContainer.style.display = 'block';
+} else {
+    reportElements.useReserveContainer.style.display = 'block'; // Всегда показываем
+    reportElements.useReserveCheckbox.disabled = true;         // Но делаем его недоступным
+    reportElements.useReserveCheckbox.checked = false;
+}
         }
         
         // Отображение журнала операций запаса
@@ -747,13 +748,31 @@
         function setupReportEventListeners() {
             // Переключение метода оплаты
             reportElements.paymentMethodBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    reportElements.paymentMethodBtns.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    reportState.paymentMethod = this.dataset.method;
-                    reportElements.paymentMethodInput.value = this.dataset.method;
-                });
-            });
+    btn.addEventListener('click', function() {
+        // Обновляем состояние
+        reportElements.paymentMethodBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        reportState.paymentMethod = this.dataset.method;
+        reportElements.paymentMethodInput.value = this.dataset.method;
+
+        const paymentMethod = this.dataset.method;
+        const selfPaidCheckbox = document.getElementById('self-paid');
+        const useReserveCheckbox = document.getElementById('use-reserve');
+
+        if (paymentMethod === 'invoice') {
+            // Блокируем чекбоксы, но не скрываем их
+            selfPaidCheckbox.disabled = true;
+            useReserveCheckbox.disabled = true;
+            // Можно также снять галочки, если это нужно
+            selfPaidCheckbox.checked = false;
+            useReserveCheckbox.checked = false;
+        } else {
+            // Разрешаем выбор, если не "Счёт"
+            selfPaidCheckbox.disabled = false;
+            useReserveCheckbox.disabled = false;
+        }
+    });
+});
             
             // Переключение метода оплаты в модальном окне редактирования
             reportElements.editPaymentMethodBtns.forEach(btn => {
@@ -763,7 +782,23 @@
                     reportElements.editPaymentMethodInput.value = this.dataset.method;
                 });
             });
-            
+            // Обработчики для чекбоксов "собственные средства" и "средства запаса"
+const selfPaidCheckbox = document.getElementById('self-paid');
+const useReserveCheckbox = document.getElementById('use-reserve');
+
+if (selfPaidCheckbox && useReserveCheckbox) {
+    selfPaidCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+            useReserveCheckbox.checked = false;
+        }
+    });
+
+    useReserveCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+            selfPaidCheckbox.checked = false;
+        }
+    });
+}
             // Загрузка файла
             reportElements.fileUpload.addEventListener('change', function(e) {
                 if (this.files && this.files[0]) {
