@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Отчёт бухам</title>
+    <title>Отчёт бухам - Учёт средств запаса</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -72,6 +72,13 @@
             max-height: 1000px; /* Достаточно большое значение для анимации */
         }
         
+        .reserve-balance {
+            background: linear-gradient(45deg, #4f46e5, #8b5cf6);
+            color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
+        }
+        
         @media (max-width: 640px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -93,12 +100,12 @@
                     Отчёт бухам
                 </h1>
             </div>
-           <p class="text-gray-500 mt-2">Учёт заказанных средств и форм оплаты. (перейти в&nbsp;<a href="https://art009bas.github.io/reestr/">Планер</a>)</p>
+           <p class="text-gray-500 mt-2">Учёт заказанных средств и форм оплаты. (перейти в&nbsp;<a href="https://art009bas.github.io/reestr/" class="text-blue-500 hover:underline">Планер</a>)</p>
         </header>
         
         <!-- Основной контент -->
         <main>
-            <!-- Форма добавления отчёта (изначально свёрнутая) -->
+            <!-- Форма добавления отчёта -->
             <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 fade-in">
                 <div class="p-6 border-b border-gray-200 flex justify-between items-center cursor-pointer" id="new-report-header">
                     <h2 class="text-xl font-semibold text-gray-800">
@@ -146,13 +153,21 @@
                                     <input type="hidden" id="payment-method" value="cash" required>
                                 </div>
                                 
-                                <!-- Оплачено своими средствами -->
-                                <div class="mb-4 md:col-span-2">
-                                    <label class="flex items-center space-x-2">
-                                        <input type="checkbox" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                        <span class="text-gray-700">Оплачено собственными средствами</span>
-                                    </label>
-                                </div>
+                               <!-- Оплачено своими средствами -->
+<div class="mb-2 md:col-span-2">
+    <label class="flex items-center space-x-2">
+        <input type="radio" name="payment-source" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <span class="text-gray-700">Оплачено собственными средствами</span>
+    </label>
+</div>
+
+<!-- Оплачено средствами запаса -->
+<div class="mb-2 md:col-span-2">
+    <label class="flex items-center space-x-2">
+        <input type="radio" name="payment-source" id="use-reserve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <span class="text-gray-700">Оплата средствами запаса</span>
+    </label>
+</div>
                                 
                                 <!-- Комментарий -->
                                 <div class="mb-4 md:col-span-2">
@@ -258,6 +273,8 @@
                 </div>
             </div>
             
+            
+            
             <!-- Статистика -->
             <div class="bg-white rounded-xl shadow-md overflow-hidden mt-8 fade-in">
                 <div class="p-6 border-b border-gray-200">
@@ -313,6 +330,90 @@
                             <div class="w-full bg-gray-200 rounded-full h-2.5 mt-3">
                                 <div id="payment-method-chart" class="bg-gradient-to-r from-blue-500 to-green-500 h-2.5 rounded-full" style="width: 100%"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Учёт средств запаса -->
+            <div class="bg-white rounded-xl shadow-md overflow-hidden mt-8 fade-in">
+                <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-xl font-semibold text-gray-800">
+                        <i class="fas fa-piggy-bank text-blue-500 mr-3"></i>
+                        Учёт средств запаса
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Текущий остаток -->
+                    <div class="reserve-balance p-6 mb-6 flex items-center justify-between">
+                        <div>
+                            <div class="text-sm opacity-80">Текущий остаток средств</div>
+                            <div class="text-2xl font-bold" id="reserve-amount">0 ₽</div>
+                        </div>
+                        <i class="fas fa-coins text-3xl opacity-30"></i>
+                    </div>
+                    
+                    <!-- Форма выдачи средств запаса -->
+                    <div class="mb-8">
+                        <h3 class="text-md font-medium text-gray-700 mb-4">Выдать средства запаса</h3>
+                        <form id="reserve-form">
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="md:col-span-1">
+                                    <label class="block text-gray-700 mb-2">Сумма</label>
+                                    <div class="relative">
+                                        <input type="number" id="reserve-amount-input" min="0" step="0.01" 
+                                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                               placeholder="0.00" required>
+                                        <span class="currency-label absolute right-3 top-2 text-gray-500">₽</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="md:col-span-1">
+                                    <label class="block text-gray-700 mb-2">Дата</label>
+                                    <input type="date" id="reserve-date" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           required>
+                                </div>
+                                
+                                <div class="md:col-span-2">
+                                    <label class="block text-gray-700 mb-2">Комментарий</label>
+                                    <input type="text" id="reserve-comment" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           placeholder="Назначение выдачи" required>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-end mt-4">
+                                <button type="submit" class="submit-btn px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center">
+                                    <i class="fas fa-plus-circle mr-2"></i> Выдать средства
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Журнал операций -->
+                    <div>
+                        <h3 class="text-md font-medium text-gray-700 mb-4">Журнал операций</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Тип</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Сумма</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Комментарий</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reserve-operations-table" class="bg-white divide-y divide-gray-200">
+                                    <!-- Заполнится динамически -->
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-gray-400">
+                                            <i class="fas fa-inbox text-xl mb-2"></i>
+                                            <p>Нет операций</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -447,15 +548,17 @@
         // Состояние приложения
         const reportState = {
             reports: [],
+            reserveOperations: [],
+            reserveAmount: 0,
             paymentMethod: 'cash',
-            status: 'not_ordered', // По умолчанию "Не заказано"
+            status: 'not_ordered',
             selfPaid: false,
             currentPage: 1,
             itemsPerPage: 5,
             filter: 'all',
             statusFilter: 'all',
             editFile: null,
-            newReportExpanded: false // Состояние формы нового отчёта (свёрнута/развёрнута)
+            newReportExpanded: false
         };
         
         // Элементы DOM
@@ -466,8 +569,9 @@
             paymentMethodInput: document.getElementById('payment-method'),
             paymentMethodBtns: document.querySelectorAll('.payment-method-btn'),
             statusInput: document.getElementById('status'),
-            statusBtns: document.querySelectorAll('.status-btn'),
             selfPaidInput: document.getElementById('self-paid'),
+            useReserveCheckbox: document.getElementById('use-reserve'),
+            useReserveContainer: document.getElementById('use-reserve-container'),
             commentInput: document.getElementById('comment'),
             fileUpload: document.getElementById('file-upload'),
             filePreview: document.getElementById('file-preview'),
@@ -489,8 +593,6 @@
             editDate: document.getElementById('edit-date'),
             editPaymentMethodInput: document.getElementById('edit-payment-method'),
             editPaymentMethodBtns: document.querySelectorAll('.edit-payment-method-btn'),
-            editStatusInput: document.getElementById('edit-status'),
-            editStatusBtns: document.querySelectorAll('.edit-status-btn'),
             editSelfPaidInput: document.getElementById('edit-self-paid'),
             editComment: document.getElementById('edit-comment'),
             editFileUpload: document.getElementById('edit-file-upload'),
@@ -514,7 +616,13 @@
             monthlyChart: document.getElementById('monthly-chart'),
             newReportHeader: document.getElementById('new-report-header'),
             newReportContent: document.getElementById('new-report-content'),
-            newReportChevron: document.getElementById('new-report-chevron')
+            newReportChevron: document.getElementById('new-report-chevron'),
+            reserveForm: document.getElementById('reserve-form'),
+            reserveAmountInput: document.getElementById('reserve-amount-input'),
+            reserveDateInput: document.getElementById('reserve-date'),
+            reserveCommentInput: document.getElementById('reserve-comment'),
+            reserveAmountDisplay: document.getElementById('reserve-amount'),
+            reserveOperationsTable: document.getElementById('reserve-operations-table')
         };
         
         // Инициализация приложения
@@ -523,34 +631,116 @@
             const today = new Date().toISOString().split('T')[0];
             reportElements.dateInput.value = today;
             reportElements.editDate.value = today;
+            reportElements.reserveDateInput.value = today;
             
             // Загружаем данные из localStorage
             loadReportsFromStorage();
             
             // Настройка обработчиков событий
             setupReportEventListeners();
-
-                      
+            
             // Инициализация пагинации
             updatePagination();
             
             // Сворачиваем форму нового отчёта при инициализации
             toggleNewReportForm(false); 
+            
+            // Обновляем отображение средств запаса
+            updateReserveDisplay();
         }
         
         // Загрузка данных из localStorage
         function loadReportsFromStorage() {
             const savedReports = localStorage.getItem('reports');
+            const savedReserve = localStorage.getItem('reserveOperations');
+            const savedReserveAmount = localStorage.getItem('reserveAmount');
+            
             if (savedReports) {
                 reportState.reports = JSON.parse(savedReports);
                 renderReports();
                 updateStatistics();
             }
+            
+            if (savedReserve) {
+                reportState.reserveOperations = JSON.parse(savedReserve);
+            }
+            
+            if (savedReserveAmount) {
+                reportState.reserveAmount = parseFloat(savedReserveAmount);
+                reportElements.reserveAmountDisplay.textContent = `${reportState.reserveAmount.toLocaleString('ru-RU')} ₽`;
+            }
+            
+            renderReserveOperations();
         }
         
         // Сохранение данных в localStorage
         function saveReportsToStorage() {
             localStorage.setItem('reports', JSON.stringify(reportState.reports));
+            localStorage.setItem('reserveOperations', JSON.stringify(reportState.reserveOperations));
+            localStorage.setItem('reserveAmount', reportState.reserveAmount.toString());
+        }
+        
+        // Обновление отображения средств запаса
+        function updateReserveDisplay() {
+            reportElements.reserveAmountDisplay.textContent = `${reportState.reserveAmount.toLocaleString('ru-RU')} ₽`;
+            renderReserveOperations();
+            
+            // Показываем или скрываем чекбокс в зависимости от наличия средств запаса
+            if (reportState.reserveAmount > 0) {
+                reportElements.useReserveContainer.style.display = 'block';
+            } else {
+                reportElements.useReserveContainer.style.display = 'none';
+                reportElements.useReserveCheckbox.checked = false;
+            }
+        }
+        
+        // Отображение журнала операций запаса
+        function renderReserveOperations() {
+            const table = reportElements.reserveOperationsTable;
+            table.innerHTML = '';
+            
+            if (reportState.reserveOperations.length === 0) {
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-gray-400">
+                            <i class="fas fa-inbox text-xl mb-2"></i>
+                            <p>Нет операций</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Сортируем операции по дате (новые сверху)
+            const sortedOperations = [...reportState.reserveOperations].sort((a, b) => 
+                new Date(b.date) - new Date(a.date)
+            );
+            
+            sortedOperations.forEach(op => {
+                const row = document.createElement('tr');
+                
+                // Форматируем дату
+                const date = new Date(op.date);
+                const formattedDate = date.toLocaleDateString('ru-RU', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+                
+                // Определяем тип операции
+                const typeClass = op.type === 'add' ? 
+                    'text-green-600 bg-green-50 rounded-full px-2 py-1 text-xs' : 
+                    'text-red-600 bg-red-50 rounded-full px-2 py-1 text-xs';
+                const typeText = op.type === 'add' ? 'Выдача' : 'Списание';
+                
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${formattedDate}</td>
+                    <td class="px-6 py-4 whitespace-nowrap"><span class="${typeClass}">${typeText}</span></td>
+                    <td class="px-6 py-4 whitespace-nowrap">${op.amount.toLocaleString('ru-RU')} ₽</td>
+                    <td class="px-6 py-4">${op.comment || ''}</td>
+                `;
+                table.appendChild(row);
+            });
         }
         
         // Настройка обработчиков событий
@@ -608,7 +798,7 @@
             // Фильтрация отчетов
             reportElements.reportFilter.addEventListener('change', function() {
                 reportState.filter = this.value;
-                reportState.currentPage = 1; // Сброс на первую страницу при изменении фильтра
+                reportState.currentPage = 1;
                 renderReports();
                 updatePagination();
             });
@@ -616,7 +806,7 @@
             // Фильтрация по статусу
             reportElements.statusFilter.addEventListener('change', function() {
                 reportState.statusFilter = this.value;
-                reportState.currentPage = 1; // Сброс на первую страницу при изменении фильтра
+                reportState.currentPage = 1;
                 renderReports();
                 updatePagination();
             });
@@ -640,14 +830,38 @@
                     amount: parseFloat(reportElements.amountInput.value),
                     date: reportElements.dateInput.value,
                     paymentMethod: reportState.paymentMethod,
-                    status: 'not_ordered', // По умолчанию "Не заказано"
+                    status: 'not_ordered',
                     selfPaid: reportElements.selfPaidInput.checked,
+                    usedReserve: reportElements.useReserveCheckbox.checked,
                     comment: reportElements.commentInput.value,
                     fileName: reportElements.fileUpload.files[0]?.name || '',
                     fileSize: reportElements.fileUpload.files[0] ? formatFileSize(reportElements.fileUpload.files[0].size) : '',
                     fileType: reportElements.fileUpload.files[0]?.type || '',
                     fileData: fileData
                 };
+                
+                // Обработка оплаты средствами запаса
+                if (newReport.usedReserve) {
+                    if (newReport.amount > reportState.reserveAmount) {
+                        showNotification('Недостаточно средств запаса!', 'error');
+                        return;
+                    }
+                    
+                    // Создаем операцию списания
+                    const reserveOperation = {
+                        type: 'use',
+                        amount: newReport.amount,
+                        date: newReport.date,
+                        comment: `Списание на отчёт #${newReport.id}: ${newReport.comment || 'Без комментария'}`,
+                        reportId: newReport.id
+                    };
+                    
+                    reportState.reserveOperations.push(reserveOperation);
+                    reportState.reserveAmount -= newReport.amount;
+                    
+                    // Показываем уведомление
+                    showNotification(`Списано ${newReport.amount} ₽ из средств запаса`, 'success');
+                }
                 
                 reportState.reports.unshift(newReport);
                 saveReportsToStorage();
@@ -661,15 +875,55 @@
                 reportElements.filePreviewImage.classList.add('hidden');
                 reportElements.dateInput.value = new Date().toISOString().split('T')[0];
                 reportElements.selfPaidInput.checked = false;
+                reportElements.useReserveCheckbox.checked = false;
                 
                 // Сброс активных кнопок
                 reportElements.paymentMethodBtns[0].click();
+                
+                // Обновляем отображение резерва
+                updateReserveDisplay();
                 
                 // Показываем уведомление
                 showNotification('Отчёт успешно сохранён!', 'success');
                 
                 // Сворачиваем форму после сохранения
                 toggleNewReportForm();
+            });
+            
+            // Форма пополнения средств запаса
+            reportElements.reserveForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const amount = parseFloat(reportElements.reserveAmountInput.value);
+                const date = reportElements.reserveDateInput.value;
+                const comment = reportElements.reserveCommentInput.value;
+                
+                if (!amount || amount <= 0) {
+                    showNotification('Укажите корректную сумму', 'error');
+                    return;
+                }
+                
+                // Создаем операцию пополнения
+                const reserveOperation = {
+                    type: 'add',
+                    amount: amount,
+                    date: date,
+                    comment: comment
+                };
+                
+                reportState.reserveOperations.push(reserveOperation);
+                reportState.reserveAmount += amount;
+                
+                // Сохраняем
+                saveReportsToStorage();
+                updateReserveDisplay();
+                
+                // Сброс формы
+                reportElements.reserveForm.reset();
+                reportElements.reserveDateInput.value = new Date().toISOString().split('T')[0];
+                
+                // Показываем уведомление
+                showNotification(`Средства запаса пополнены на ${amount} ₽`, 'success');
             });
             
             // Закрытие модального окна редактирования
@@ -785,26 +1039,26 @@
                 }
             });
             
-            // Переключение состояния формы нового отчёта (свёрнуто/развёрнуто)
+            // Переключение состояния формы нового отчёта
             reportElements.newReportHeader.addEventListener('click', toggleNewReportForm);
         }
         
         // Переключение состояния формы нового отчёта
         function toggleNewReportForm(forceState = null) {
-    if (forceState !== null) {
-        reportState.newReportExpanded = forceState;
-    } else {
-        reportState.newReportExpanded = !reportState.newReportExpanded;
-    }
-    
-    if (reportState.newReportExpanded) {
-        reportElements.newReportContent.classList.add('expanded');
-        reportElements.newReportChevron.classList.add('rotate-180');
-    } else {
-        reportElements.newReportContent.classList.remove('expanded');
-        reportElements.newReportChevron.classList.remove('rotate-180');
-    }
-}
+            if (forceState !== null) {
+                reportState.newReportExpanded = forceState;
+            } else {
+                reportState.newReportExpanded = !reportState.newReportExpanded;
+            }
+            
+            if (reportState.newReportExpanded) {
+                reportElements.newReportContent.classList.add('expanded');
+                reportElements.newReportChevron.classList.add('rotate-180');
+            } else {
+                reportElements.newReportContent.classList.remove('expanded');
+                reportElements.newReportChevron.classList.remove('rotate-180');
+            }
+        }
         
         // Получение отфильтрованных отчетов
         function getFilteredReports() {
@@ -902,6 +1156,13 @@
                     </span>
                 ` : '';
                 
+                // Метка для средств запаса
+                const reserveBadge = report.usedReserve ? `
+                    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                        <i class="fas fa-piggy-bank mr-1"></i> Запас
+                    </span>
+                ` : '';
+                
                 // Превью файла
                 const filePreview = report.fileName ? `
                     <button class="text-blue-500 hover:text-blue-700 text-sm flex items-center view-document-btn" 
@@ -926,6 +1187,7 @@
                                     <i class="fas ${statusIcon} mr-1"></i> ${statusText}
                                 </span>
                                 ${selfPaidBadge}
+                                ${reserveBadge}
                                 ${filePreview}
                             </div>
                         </div>
@@ -1105,6 +1367,29 @@
         // Удаление отчета
         function deleteReport(id) {
             if (confirm('Вы уверены, что хотите удалить этот отчёт?')) {
+                const reportIndex = reportState.reports.findIndex(r => r.id === id);
+                const report = reportState.reports[reportIndex];
+                
+                // Возвращаем средства запаса, если отчет был ими оплачен
+                if (report.usedReserve) {
+                    const returnOperation = {
+                        type: 'add',
+                        amount: report.amount,
+                        date: new Date().toISOString().split('T')[0],
+                        comment: `Возврат средств за отчёт #${report.id}`,
+                        reportId: report.id
+                    };
+                    
+                    reportState.reserveOperations.push(returnOperation);
+                    reportState.reserveAmount += report.amount;
+                    
+                    // Показываем уведомление
+                    showNotification(`Возвращено ${report.amount} ₽ в средства запаса`, 'success');
+                    
+                    // Обновляем отображение резерва
+                    updateReserveDisplay();
+                }
+                
                 reportState.reports = reportState.reports.filter(r => r.id !== id);
                 saveReportsToStorage();
                 renderReports();
@@ -1176,52 +1461,67 @@
         
         // Обновление графика по месяцам
         function updateMonthlyChart() {
-            // Создаем данные для графика
-            const monthlyData = {};
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            
-            // Инициализируем данные для последних 6 месяцев
-            for (let i = 5; i >= 0; i--) {
-                const date = new Date(currentYear, now.getMonth() - i, 1);
-                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                const monthName = date.toLocaleDateString('ru-RU', { month: 'short' });
-                monthlyData[monthKey] = {
-                    monthName: monthName,
-                    total: 0
-                };
-            }
-            
-            // Заполняем данные из отчетов
-            reportState.reports.forEach(report => {
-                const reportDate = new Date(report.date);
-                const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
-                
-                if (monthlyData[monthKey]) {
-                    monthlyData[monthKey].total += report.amount;
-                }
-            });
-            
-            // Находим максимальную сумму для масштабирования графика
-            const maxAmount = Math.max(...Object.values(monthlyData).map(m => m.total), 1);
-            
-            // Очищаем график
-            reportElements.monthlyChart.innerHTML = '';
-            
-            // Создаем столбцы графика
-            Object.entries(monthlyData).forEach(([key, data]) => {
-                const heightPercent = (data.total / maxAmount) * 100;
-                
-                const column = document.createElement('div');
-                column.className = 'flex-1 flex flex-col items-center';
-                column.innerHTML = `
-                    <div class="w-full bg-blue-200 rounded-t" style="height: ${heightPercent}%;"></div>
-                    <div class="text-xs text-gray-500 mt-1">${data.monthName}</div>
-                `;
-                
-                reportElements.monthlyChart.appendChild(column);
-            });
+    const monthlyData = {};
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    // Инициализируем данные за последние 6 месяцев
+    for (let i = 5; i >= 0; i--) {
+        const date = new Date(currentYear, now.getMonth() - i, 1);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        const monthName = date.toLocaleDateString('ru-RU', { month: 'short' });
+        monthlyData[monthKey] = {
+            monthName,
+            total: 0
+        };
+    }
+
+    // Заполняем данными из отчетов
+    reportState.reports.forEach(report => {
+        const reportDate = new Date(report.date);
+        const monthKey = `${reportDate.getFullYear()}-${String(reportDate.getMonth() + 1).padStart(2, '0')}`;
+        if (monthlyData[monthKey]) {
+            monthlyData[monthKey].total += report.amount;
         }
+    });
+
+    // Находим максимальное значение суммы
+    const values = Object.values(monthlyData).map(m => m.total);
+    const maxAmount = Math.max(...values, 1); // min 1 чтобы избежать деления на 0
+
+    // Очищаем контейнер
+    reportElements.monthlyChart.innerHTML = '';
+    reportElements.monthlyChart.style.display = 'flex';
+    reportElements.monthlyChart.style.gap = '1rem';
+
+    // Создаем столбцы
+    Object.entries(monthlyData).forEach(([key, data]) => {
+        const heightPercent = (data.total / maxAmount) * 100;
+
+        const columnWrapper = document.createElement('div');
+        columnWrapper.className = 'flex flex-col items-center justify-end w-full h-40 space-y-1';
+
+        const bar = document.createElement('div');
+        bar.className = 'w-full bg-blue-500 rounded-t transition-all duration-500 ease-in-out';
+        bar.style.height = `${heightPercent}%`;
+        bar.style.minHeight = heightPercent > 0 ? '4px' : '0'; // минимальная высота
+        bar.title = `${data.total} ₽`;
+
+        const label = document.createElement('div');
+        label.className = 'text-xs text-gray-500 text-center mt-1';
+        label.textContent = data.monthName;
+
+        const valueLabel = document.createElement('div');
+        valueLabel.className = 'text-xs text-gray-700 font-medium text-center';
+        valueLabel.textContent = `${data.total.toLocaleString('ru-RU')} ₽`;
+
+        columnWrapper.appendChild(bar);
+        columnWrapper.appendChild(label);
+        columnWrapper.appendChild(valueLabel);
+
+        reportElements.monthlyChart.appendChild(columnWrapper);
+    });
+}
         
         // Форматирование размера файла
         function formatFileSize(bytes) {
