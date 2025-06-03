@@ -154,17 +154,17 @@
                                 </div>
                                 
                                <!-- Оплачено своими средствами -->
-<div class="mb-2 md:col-span-2">
+<div class="mb-4 md:col-span-2">
     <label class="flex items-center space-x-2">
-        <input type="radio" name="payment-source" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <input type="checkbox" id="self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
         <span class="text-gray-700">Оплачено собственными средствами</span>
     </label>
 </div>
 
 <!-- Оплачено средствами запаса -->
-<div class="mb-2 md:col-span-2">
+<div class="mb-4 md:col-span-2" id="use-reserve-container">
     <label class="flex items-center space-x-2">
-        <input type="radio" name="payment-source" id="use-reserve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+        <input type="checkbox" id="use-reserve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
         <span class="text-gray-700">Оплата средствами запаса</span>
     </label>
 </div>
@@ -341,9 +341,6 @@
                         <i class="fas fa-piggy-bank text-blue-500 mr-3"></i>
                         Учёт средств запаса
                     </h2>
-                    <button id="toggle-reserve-form" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm">
-                        <i class="fas fa-plus mr-2"></i> Выдать средства
-                    </button>
                 </div>
                 
                 <div class="p-6">
@@ -357,7 +354,7 @@
                     </div>
                     
                     <!-- Форма выдачи средств запаса -->
-                    <div class="mb-8 hidden" id="reserve-form-container">
+                    <div class="mb-8">
                         <h3 class="text-md font-medium text-gray-700 mb-4">Выдать средства запаса</h3>
                         <form id="reserve-form">
                             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -434,8 +431,7 @@
                 </button>
             </div>
             <div class="p-4 overflow-y-auto flex items-center justify-center">
-                <img id="document-modal-image" class="max-w-full max-h-[70vh] rounded-lg hidden" src="" alt="Документ">
-                <iframe id="document-modal-pdf" class="w-full max-h-[70vh] rounded-lg hidden" style="min-height: 500px;"></iframe>
+                <img id="document-modal-image" class="max-w-full max-h-[70vh] rounded-lg" src="" alt="Документ">
             </div>
         </div>
     </div>
@@ -589,7 +585,6 @@
             documentModal: document.getElementById('document-modal'),
             documentModalTitle: document.getElementById('document-modal-title'),
             documentModalImage: document.getElementById('document-modal-image'),
-            documentModalPdf: document.getElementById('document-modal-pdf'),
             closeDocumentModalBtn: document.getElementById('close-document-modal'),
             editModal: document.getElementById('edit-modal'),
             editForm: document.getElementById('edit-form'),
@@ -632,11 +627,6 @@
         
         // Инициализация приложения
         function initReports() {
-            // Обработчик кнопки показа/скрытия формы выдачи средств
-            document.getElementById('toggle-reserve-form').addEventListener('click', function() {
-                const formContainer = document.getElementById('reserve-form-container');
-                formContainer.classList.toggle('hidden');
-            });
             // Устанавливаем сегодняшнюю дату по умолчанию
             const today = new Date().toISOString().split('T')[0];
             reportElements.dateInput.value = today;
@@ -697,11 +687,12 @@
             
             // Показываем или скрываем чекбокс в зависимости от наличия средств запаса
             if (reportState.reserveAmount > 0) {
-                reportElements.useReserveContainer.style.display = 'block';
-            } else {
-                reportElements.useReserveContainer.style.display = 'none';
-                reportElements.useReserveCheckbox.checked = false;
-            }
+    reportElements.useReserveContainer.style.display = 'block';
+} else {
+    reportElements.useReserveContainer.style.display = 'block'; // Всегда показываем
+    reportElements.useReserveCheckbox.disabled = true;         // Но делаем его недоступным
+    reportElements.useReserveCheckbox.checked = false;
+}
         }
         
         // Отображение журнала операций запаса
@@ -757,13 +748,31 @@
         function setupReportEventListeners() {
             // Переключение метода оплаты
             reportElements.paymentMethodBtns.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    reportElements.paymentMethodBtns.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    reportState.paymentMethod = this.dataset.method;
-                    reportElements.paymentMethodInput.value = this.dataset.method;
-                });
-            });
+    btn.addEventListener('click', function() {
+        // Обновляем состояние
+        reportElements.paymentMethodBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        reportState.paymentMethod = this.dataset.method;
+        reportElements.paymentMethodInput.value = this.dataset.method;
+
+        const paymentMethod = this.dataset.method;
+        const selfPaidCheckbox = document.getElementById('self-paid');
+        const useReserveCheckbox = document.getElementById('use-reserve');
+
+        if (paymentMethod === 'invoice') {
+            // Блокируем чекбоксы, но не скрываем их
+            selfPaidCheckbox.disabled = true;
+            useReserveCheckbox.disabled = true;
+            // Можно также снять галочки, если это нужно
+            selfPaidCheckbox.checked = false;
+            useReserveCheckbox.checked = false;
+        } else {
+            // Разрешаем выбор, если не "Счёт"
+            selfPaidCheckbox.disabled = false;
+            useReserveCheckbox.disabled = false;
+        }
+    });
+});
             
             // Переключение метода оплаты в модальном окне редактирования
             reportElements.editPaymentMethodBtns.forEach(btn => {
@@ -773,7 +782,23 @@
                     reportElements.editPaymentMethodInput.value = this.dataset.method;
                 });
             });
-            
+            // Обработчики для чекбоксов "собственные средства" и "средства запаса"
+const selfPaidCheckbox = document.getElementById('self-paid');
+const useReserveCheckbox = document.getElementById('use-reserve');
+
+if (selfPaidCheckbox && useReserveCheckbox) {
+    selfPaidCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+            useReserveCheckbox.checked = false;
+        }
+    });
+
+    useReserveCheckbox.addEventListener('change', function () {
+        if (this.checked) {
+            selfPaidCheckbox.checked = false;
+        }
+    });
+}
             // Загрузка файла
             reportElements.fileUpload.addEventListener('change', function(e) {
                 if (this.files && this.files[0]) {
@@ -1224,20 +1249,12 @@
                     
                     reportElements.documentModalTitle.textContent = fileName;
                     
-                    // Показываем изображение или PDF
                     if (fileType.match('image.*') && fileData) {
                         reportElements.documentModalImage.src = fileData;
                         reportElements.documentModalImage.classList.remove('hidden');
-                        reportElements.documentModalPdf.classList.add('hidden');
-                    } else if (fileType === 'application/pdf' && fileData) {
-                        reportElements.documentModalPdf.src = fileData;
-                        reportElements.documentModalPdf.classList.remove('hidden');
-                        reportElements.documentModalImage.classList.add('hidden');
                     } else {
                         reportElements.documentModalImage.src = '';
-                        reportElements.documentModalPdf.src = '';
                         reportElements.documentModalImage.classList.add('hidden');
-                        reportElements.documentModalPdf.classList.add('hidden');
                     }
                     
                     reportElements.documentModal.classList.remove('hidden');
