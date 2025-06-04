@@ -393,17 +393,38 @@
                     
                     <!-- Журнал операций -->
                     <div>
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-md font-medium text-gray-700">Журнал операций</h3>
-                            <div class="relative">
-                                <select id="reserve-sort" class="appearance-none pl-3 pr-8 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
-                                    <option value="newest" selected>Сначала новые</option>
-                                    <option value="oldest">Сначала старые</option>
-                                    <option value="amount_high">По сумме (убыв.)</option>
-                                    <option value="amount_low">По сумме (возр.)</option>
-                                </select>
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                                    <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                        <div class="mb-4">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="text-md font-medium text-gray-700">Журнал операций</h3>
+                                <div class="relative">
+                                    <select id="reserve-sort" class="appearance-none pl-3 pr-8 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                                        <option value="newest" selected>Сначала новые</option>
+                                        <option value="oldest">Сначала старые</option>
+                                        <option value="amount_high">По сумме (убыв.)</option>
+                                        <option value="amount_low">По сумме (возр.)</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Search input -->
+                            <div class="relative mb-3">
+                                <input type="text" id="reserve-search" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Поиск по комментарию...">
+                                <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                            </div>
+                            
+                            <!-- Pagination controls -->
+                            <div class="flex justify-between items-center mt-4">
+                                <div id="reserve-page-info" class="text-sm text-gray-600">Страница 1 из 1</div>
+                                <div class="flex space-x-2">
+                                    <button id="reserve-prev-page" class="px-4 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50" disabled>
+                                        <i class="fas fa-chevron-left mr-1"></i> Назад
+                                    </button>
+                                    <button id="reserve-next-page" class="px-4 py-1 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 disabled:opacity-50" disabled>
+                                        Вперед <i class="fas fa-chevron-right ml-1"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -570,6 +591,9 @@
         const reportState = {
             reports: [],
             reserveOperations: [],
+            reserveCurrentPage: 1,
+            reserveItemsPerPage: 10,
+            reserveSearchQuery: '',
             reserveAmount: 0,
             paymentMethod: 'cash',
             status: 'not_ordered',
@@ -664,6 +688,7 @@
             
             // Инициализация пагинации
             updatePagination();
+            setupReserveOperationsListeners();
             
             // Сворачиваем форму нового отчёта при инициализации
             toggleNewReportForm(false); 
@@ -703,6 +728,74 @@
             localStorage.setItem('reserveAmount', reportState.reserveAmount.toString());
         }
         
+        // Обновление пагинации для журнала операций
+        function updateReservePagination(filteredOperations) {
+            const totalPages = Math.ceil(filteredOperations.length / reportState.reserveItemsPerPage);
+            
+            // Обновляем информацию о странице
+            const pageInfo = reportState.reserveCurrentPage > totalPages && totalPages > 0 ? 
+                `Страница ${totalPages} из ${totalPages}` :
+                `Страница ${reportState.reserveCurrentPage} из ${totalPages || 1}`;
+            
+            document.getElementById('reserve-page-info').textContent = pageInfo;
+            
+            // Обновляем состояние кнопок
+            document.getElementById('reserve-prev-page').disabled = reportState.reserveCurrentPage <= 1;
+            document.getElementById('reserve-next-page').disabled = 
+                reportState.reserveCurrentPage >= totalPages || totalPages === 0;
+        }
+
+        // Обработчики для пагинации и поиска операций
+        function setupReserveOperationsListeners() {
+            // Обработчик изменения сортировки операций
+            if (reportElements.reserveSort) {
+                reportElements.reserveSort.addEventListener('change', function() {
+                    reportState.reserveCurrentPage = 1;
+                    renderReserveOperations();
+                });
+            }
+            
+            // Обработчик поиска
+            document.getElementById('reserve-search').addEventListener('input', function(e) {
+                reportState.reserveSearchQuery = e.target.value;
+                reportState.reserveCurrentPage = 1;
+                renderReserveOperations();
+            });
+            
+            // Обработчик предыдущей страницы
+            document.getElementById('reserve-prev-page').addEventListener('click', function() {
+                if (reportState.reserveCurrentPage > 1) {
+                    reportState.reserveCurrentPage--;
+                    renderReserveOperations();
+                }
+            });
+            
+            // Обработчик следующей страницы
+            document.getElementById('reserve-next-page').addEventListener('click', function() {
+                const filteredOperations = getFilteredReserveOperations();
+                const totalPages = Math.ceil(filteredOperations.length / reportState.reserveItemsPerPage);
+                
+                if (reportState.reserveCurrentPage < totalPages) {
+                    reportState.reserveCurrentPage++;
+                    renderReserveOperations();
+                }
+            });
+        }
+        
+        // Получение отфильтрованных операций запаса
+        function getFilteredReserveOperations() {
+            let operations = [...reportState.reserveOperations];
+            
+            if (reportState.reserveSearchQuery.trim() !== '') {
+                const query = reportState.reserveSearchQuery.toLowerCase();
+                operations = operations.filter(op => 
+                    (op.comment || '').toLowerCase().includes(query)
+                );
+            }
+            
+            return operations;
+        }
+
         // Обновление отображения средств запаса
         function updateReserveDisplay() {
             reportElements.reserveAmountDisplay.textContent = `${reportState.reserveAmount.toLocaleString('ru-RU')} ₽`;
@@ -718,28 +811,26 @@
 }
         }
         
-        // Отображение журнала операций запаса
+        // Отображение журнала операций запаса с пагинацией и поиском
         function renderReserveOperations() {
             const table = reportElements.reserveOperationsTable;
             table.innerHTML = '';
             
-            if (reportState.reserveOperations.length === 0) {
-                table.innerHTML = `
-                    <tr>
-                        <td colspan="4" class="text-center py-4 text-gray-400">
-                            <i class="fas fa-inbox text-xl mb-2"></i>
-                            <p>Нет операций</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-            
             // Получаем выбранный тип сортировки
             const sortType = reportElements.reserveSort ? reportElements.reserveSort.value : 'newest';
             
+            // Фильтруем операции по поисковому запросу
+            let filteredOperations = [...reportState.reserveOperations];
+            
+            if (reportState.reserveSearchQuery.trim() !== '') {
+                const query = reportState.reserveSearchQuery.toLowerCase();
+                filteredOperations = filteredOperations.filter(op => 
+                    (op.comment || '').toLowerCase().includes(query)
+                );
+            }
+            
             // Сортируем операции в зависимости от выбранного типа
-            let sortedOperations = [...reportState.reserveOperations];
+            let sortedOperations = [...filteredOperations];
             
             switch(sortType) {
                 case 'newest':
@@ -758,7 +849,28 @@
                     sortedOperations.sort((a, b) => b.id - a.id);
             }
             
-            sortedOperations.forEach(op => {
+            if (sortedOperations.length === 0) {
+                table.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-gray-400">
+                            <i class="fas fa-search text-xl mb-2"></i>
+                            <p>Операции не найдены</p>
+                        </td>
+                    </tr>
+                `;
+                updateReservePagination(filteredOperations);
+                return;
+            }
+            
+            // Пагинация
+            const startIndex = (reportState.reserveCurrentPage - 1) * reportState.reserveItemsPerPage;
+            const paginatedOperations = sortedOperations.slice(
+                startIndex, 
+                startIndex + reportState.reserveItemsPerPage
+            );
+            
+            // Рендер операций
+            paginatedOperations.forEach(op => {
                 const row = document.createElement('tr');
                 
                 // Форматируем дату
