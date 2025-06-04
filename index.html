@@ -393,7 +393,20 @@
                     
                     <!-- Журнал операций -->
                     <div>
-                        <h3 class="text-md font-medium text-gray-700 mb-4">Журнал операций</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-md font-medium text-gray-700">Журнал операций</h3>
+                            <div class="relative">
+                                <select id="reserve-sort" class="appearance-none pl-3 pr-8 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                                    <option value="newest" selected>Сначала новые</option>
+                                    <option value="oldest">Сначала старые</option>
+                                    <option value="amount_high">По сумме (убыв.)</option>
+                                    <option value="amount_low">По сумме (возр.)</option>
+                                </select>
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                    <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
                         <div class="overflow-x-auto">
                             <table class="min-w-full divide-y divide-gray-200">
                                 <thead class="bg-gray-50">
@@ -488,6 +501,14 @@
                             <label class="flex items-center space-x-2">
                                 <input type="checkbox" id="edit-self-paid" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                                 <span class="text-gray-700">Оплачено собственными средствами</span>
+                            </label>
+                        </div>
+                        
+                        <!-- Оплачено средствами запаса -->
+                        <div class="mb-4 md:col-span-2" id="edit-use-reserve-container">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" id="edit-use-reserve" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                <span class="text-gray-700">Оплата средствами запаса</span>
                             </label>
                         </div>
                         
@@ -601,6 +622,8 @@
             editFileSize: document.getElementById('edit-file-size'),
             editFilePreviewImage: document.getElementById('edit-file-preview-image'),
             editRemoveFileBtn: document.getElementById('edit-remove-file'),
+            editUseReserveCheckbox: document.getElementById('edit-use-reserve'),
+            editUseReserveContainer: document.getElementById('edit-use-reserve-container'),
             closeEditModalBtn: document.getElementById('close-edit-modal'),
             cancelEditBtn: document.getElementById('cancel-edit'),
             prevPageBtn: document.getElementById('prev-page'),
@@ -712,10 +735,28 @@
                 return;
             }
             
-            // Сортируем операции по дате (новые сверху)
-            const sortedOperations = [...reportState.reserveOperations].sort((a, b) => 
-                new Date(b.date) - new Date(a.date)
-            );
+            // Получаем выбранный тип сортировки
+            const sortType = reportElements.reserveSort ? reportElements.reserveSort.value : 'newest';
+            
+            // Сортируем операции в зависимости от выбранного типа
+            let sortedOperations = [...reportState.reserveOperations];
+            
+            switch(sortType) {
+                case 'newest':
+                    sortedOperations.sort((a, b) => b.id - a.id);
+                    break;
+                case 'oldest':
+                    sortedOperations.sort((a, b) => a.id - b.id);
+                    break;
+                case 'amount_high':
+                    sortedOperations.sort((a, b) => b.amount - a.amount);
+                    break;
+                case 'amount_low':
+                    sortedOperations.sort((a, b) => a.amount - b.amount);
+                    break;
+                default:
+                    sortedOperations.sort((a, b) => b.id - a.id);
+            }
             
             sortedOperations.forEach(op => {
                 const row = document.createElement('tr');
@@ -746,6 +787,13 @@
         
         // Настройка обработчиков событий
         function setupReportEventListeners() {
+            // Обработчик изменения сортировки операций
+            reportElements.reserveSort = document.getElementById('reserve-sort');
+            if (reportElements.reserveSort) {
+                reportElements.reserveSort.addEventListener('change', function() {
+                    renderReserveOperations();
+                });
+            }
             // Переключение метода оплаты
             reportElements.paymentMethodBtns.forEach(btn => {
     btn.addEventListener('click', function() {
@@ -779,7 +827,18 @@
                 btn.addEventListener('click', function() {
                     reportElements.editPaymentMethodBtns.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
-                    reportElements.editPaymentMethodInput.value = this.dataset.method;
+                    const paymentMethod = this.dataset.method;
+                    reportElements.editPaymentMethodInput.value = paymentMethod;
+
+                    if (paymentMethod === 'invoice') {
+                        reportElements.editSelfPaidInput.disabled = true;
+                        reportElements.editUseReserveCheckbox.disabled = true;
+                        reportElements.editSelfPaidInput.checked = false;
+                        reportElements.editUseReserveCheckbox.checked = false;
+                    } else {
+                        reportElements.editSelfPaidInput.disabled = false;
+                        reportElements.editUseReserveCheckbox.disabled = false;
+                    }
                 });
             });
             // Обработчики для чекбоксов "собственные средства" и "средства запаса"
@@ -885,6 +944,7 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                     // Создаем операцию списания
                     const reserveOperation = {
                         type: 'use',
+                        id: Date.now(),
                         amount: newReport.amount,
                         date: newReport.date,
                         comment: `Списание на отчёт #${newReport.id}: ${newReport.comment || 'Без комментария'}`,
@@ -941,6 +1001,7 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                 // Создаем операцию пополнения
                 const reserveOperation = {
                     type: 'add',
+                    id: Date.now(),
                     amount: amount,
                     date: date,
                     comment: comment
@@ -1005,6 +1066,21 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                 reportState.editFile = null;
             });
             
+            // Взаимоисключение чекбоксов в форме редактирования
+            if (reportElements.editSelfPaidInput && reportElements.editUseReserveCheckbox) {
+                reportElements.editSelfPaidInput.addEventListener('change', function () {
+                    if (this.checked) {
+                        reportElements.editUseReserveCheckbox.checked = false;
+                    }
+                });
+
+                reportElements.editUseReserveCheckbox.addEventListener('change', function () {
+                    if (this.checked) {
+                        reportElements.editSelfPaidInput.checked = false;
+                    }
+                });
+            }
+
             // Обработка отправки формы редактирования
             reportElements.editForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
@@ -1013,7 +1089,11 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                 const reportIndex = reportState.reports.findIndex(r => r.id === reportId);
                 
                 if (reportIndex !== -1) {
-                    let fileData = reportState.reports[reportIndex].fileData;
+                    const originalReport = reportState.reports[reportIndex];
+                    const wasUsingReserve = originalReport.usedReserve;
+                    const reserveAmount = parseFloat(reportElements.editAmount.value);
+                    
+                    let fileData = originalReport.fileData;
                     let fileName = reportState.reports[reportIndex].fileName;
                     let fileSize = reportState.reports[reportIndex].fileSize;
                     let fileType = reportState.reports[reportIndex].fileType;
@@ -1026,12 +1106,74 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                         fileType = reportState.editFile.type;
                     }
                     
+                    // Handle reserve funds changes
+                    if (wasUsingReserve && !reportElements.editUseReserveCheckbox.checked) {
+                        // Return funds to reserve if unchecked
+                        const returnOperation = {
+                            type: 'add',
+                            amount: originalReport.amount,
+                            date: new Date().toISOString().split('T')[0],
+                            comment: `Возврат средств за отчёт #${originalReport.id}`,
+                            reportId: originalReport.id
+                        };
+                        reportState.reserveOperations.push(returnOperation);
+                        reportState.reserveAmount += originalReport.amount;
+                    } 
+                    else if (!wasUsingReserve && reportElements.editUseReserveCheckbox.checked) {
+                        // Deduct from reserve if newly checked
+                        if (reserveAmount > reportState.reserveAmount) {
+                            showNotification('Недостаточно средств запаса!', 'error');
+                            return;
+                        }
+                        const deductionOperation = {
+                            type: 'use',
+                            amount: reserveAmount,
+                            date: new Date().toISOString().split('T')[0],
+                            comment: `Списание на отчёт #${originalReport.id}: ${reportElements.editComment.value || 'Без комментария'}`,
+                            reportId: originalReport.id
+                        };
+                        reportState.reserveOperations.push(deductionOperation);
+                        reportState.reserveAmount -= reserveAmount;
+                    }
+                    else if (wasUsingReserve && reportElements.editUseReserveCheckbox.checked && originalReport.amount !== reserveAmount) {
+                        // Adjust reserve if amount changed
+                        const difference = originalReport.amount - reserveAmount;
+                        if (difference > 0) {
+                            // Return excess
+                            const returnOperation = {
+                                type: 'add',
+                                amount: difference,
+                                date: new Date().toISOString().split('T')[0],
+                                comment: `Корректировка средств за отчёт #${originalReport.id} (возврат)`,
+                                reportId: originalReport.id
+                            };
+                            reportState.reserveOperations.push(returnOperation);
+                            reportState.reserveAmount += difference;
+                        } else {
+                            // Deduct additional
+                            if (Math.abs(difference) > reportState.reserveAmount) {
+                                showNotification('Недостаточно средств запаса!', 'error');
+                                return;
+                            }
+                            const deductionOperation = {
+                                type: 'use',
+                                amount: Math.abs(difference),
+                                date: new Date().toISOString().split('T')[0],
+                                comment: `Корректировка средств за отчёт #${originalReport.id} (доплата)`,
+                                reportId: originalReport.id
+                            };
+                            reportState.reserveOperations.push(deductionOperation);
+                            reportState.reserveAmount -= Math.abs(difference);
+                        }
+                    }
+
                     const updatedReport = {
-                        ...reportState.reports[reportIndex],
+                        ...originalReport,
                         amount: parseFloat(reportElements.editAmount.value),
                         date: reportElements.editDate.value,
                         paymentMethod: reportElements.editPaymentMethodInput.value,
                         selfPaid: reportElements.editSelfPaidInput.checked,
+                        usedReserve: reportElements.editUseReserveCheckbox.checked,
                         comment: reportElements.editComment.value,
                         fileName: fileName,
                         fileSize: fileSize,
@@ -1368,6 +1510,7 @@ if (selfPaidCheckbox && useReserveCheckbox) {
             reportElements.editDate.value = report.date;
             reportElements.editComment.value = report.comment || '';
             reportElements.editSelfPaidInput.checked = report.selfPaid || false;
+            reportElements.editUseReserveCheckbox.checked = report.usedReserve || false;
             
             // Устанавливаем активную кнопку метода оплаты
             reportElements.editPaymentMethodBtns.forEach(btn => {
