@@ -470,9 +470,14 @@
         <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden fade-in">
             <div class="p-4 border-b border-gray-200 flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-800" id="document-modal-title"></h3>
-                <button id="close-document-modal" class="text-gray-400 hover:text-gray-600">
-                    <i class="fas fa-times"></i>
-                </button>
+                <div class="flex items-center space-x-4">
+                    <button id="download-document-btn" class="text-blue-500 hover:text-blue-700">
+                        <i class="fas fa-download mr-1"></i> Скачать
+                    </button>
+                    <button id="close-document-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
             <div class="p-4 overflow-y-auto flex items-center justify-center">
                 <img id="document-modal-image" class="max-w-full max-h-[70vh] rounded-lg" src="" alt="Документ">
@@ -1040,6 +1045,25 @@ if (selfPaidCheckbox && useReserveCheckbox) {
             reportElements.closeDocumentModalBtn.addEventListener('click', function() {
                 reportElements.documentModal.classList.add('hidden');
             });
+
+            // Скачивание документа
+            document.getElementById('download-document-btn').addEventListener('click', function() {
+                const fileName = reportElements.documentModalTitle.textContent;
+                const fileData = reportElements.documentModalImage.src;
+                
+                if (!fileData || fileData === '') {
+                    showNotification('Нет данных файла для скачивания', 'error');
+                    return;
+                }
+
+                // Создаем временную ссылку для скачивания
+                const link = document.createElement('a');
+                link.href = fileData;
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
             
             // Обработка отправки формы
             reportElements.form.addEventListener('submit', async function(e) {
@@ -1534,10 +1558,18 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                     if (fileType.match('image.*') && fileData) {
                         reportElements.documentModalImage.src = fileData;
                         reportElements.documentModalImage.classList.remove('hidden');
+                    } else if (fileType.match('application/pdf') && fileData) {
+                        // Для PDF показываем иконку вместо изображения
+                        reportElements.documentModalImage.src = '';
+                        reportElements.documentModalImage.classList.add('hidden');
+                        // Можно добавить отображение иконки PDF
                     } else {
                         reportElements.documentModalImage.src = '';
                         reportElements.documentModalImage.classList.add('hidden');
                     }
+
+                    // Сохраняем данные файла в data-атрибутах для скачивания
+                    reportElements.documentModalImage.dataset.fileData = fileData || '';
                     
                     reportElements.documentModal.classList.remove('hidden');
                 });
