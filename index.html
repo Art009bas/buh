@@ -480,7 +480,8 @@
                 </div>
             </div>
             <div class="p-4 overflow-y-auto flex items-center justify-center">
-                <img id="document-modal-image" class="max-w-full max-h-[70vh] rounded-lg" src="" alt="Документ">
+                <img id="document-modal-image" class="max-w-full max-h-[70vh] rounded-lg hidden" src="" alt="Документ">
+                <iframe id="document-pdf-viewer" class="w-full h-[70vh] rounded-lg hidden" frameborder="0"></iframe>
             </div>
         </div>
     </div>
@@ -646,6 +647,7 @@
             documentModal: document.getElementById('document-modal'),
             documentModalTitle: document.getElementById('document-modal-title'),
             documentModalImage: document.getElementById('document-modal-image'),
+            documentPdfViewer: document.getElementById('document-pdf-viewer'),
             closeDocumentModalBtn: document.getElementById('close-document-modal'),
             editModal: document.getElementById('edit-modal'),
             editForm: document.getElementById('edit-form'),
@@ -1558,14 +1560,15 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                     if (fileType.match('image.*') && fileData) {
                         reportElements.documentModalImage.src = fileData;
                         reportElements.documentModalImage.classList.remove('hidden');
+                        reportElements.documentPdfViewer.classList.add('hidden');
                     } else if (fileType.match('application/pdf') && fileData) {
-                        // Для PDF показываем иконку вместо изображения
-                        reportElements.documentModalImage.src = '';
                         reportElements.documentModalImage.classList.add('hidden');
-                        // Можно добавить отображение иконки PDF
+                        reportElements.documentPdfViewer.src = fileData;
+                        reportElements.documentPdfViewer.classList.remove('hidden');
                     } else {
                         reportElements.documentModalImage.src = '';
                         reportElements.documentModalImage.classList.add('hidden');
+                        reportElements.documentPdfViewer.classList.add('hidden');
                     }
 
                     // Сохраняем данные файла в data-атрибутах для скачивания
