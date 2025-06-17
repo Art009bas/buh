@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Отчёт бухам - Учёт средств запаса</title>
-    <script src="tailwind.js"></script>
+<script src="https://art009bas.github.io/reestr/tailwind.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         @keyframes fadeIn {
@@ -243,6 +243,16 @@
                                 <option value="not_ordered">Не заказано</option>
                                 <option value="ordered">Заказано</option>
                                 <option value="paid">Оплачено</option>
+                            </select>
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                            </div>
+                        </div>
+                        <div class="relative">
+                            <select id="funds-filter" class="appearance-none pl-3 pr-8 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm">
+                                <option value="all">Все средства</option>
+                                <option value="self">Свои</option>
+                                <option value="reserve">Запас</option>
                             </select>
                             <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                                 <i class="fas fa-chevron-down text-gray-400"></i>
@@ -602,6 +612,7 @@
             itemsPerPage: 5,
             filter: 'all',
             statusFilter: 'all',
+            fundsFilter: 'all',
             editFile: null,
             newReportExpanded: false
         };
@@ -1016,6 +1027,14 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                 renderReports();
                 updatePagination();
             });
+
+            // Фильтрация по типу средств
+            document.getElementById('funds-filter').addEventListener('change', function() {
+                reportState.fundsFilter = this.value;
+                reportState.currentPage = 1;
+                renderReports();
+                updatePagination();
+            });
             
             // Просмотр документа
             reportElements.closeDocumentModalBtn.addEventListener('click', function() {
@@ -1361,6 +1380,15 @@ if (selfPaidCheckbox && useReserveCheckbox) {
             // Фильтрация по статусу
             if (reportState.statusFilter !== 'all') {
                 filteredReports = filteredReports.filter(r => r.status === reportState.statusFilter);
+            }
+
+            // Фильтрация по типу средств
+            if (reportState.fundsFilter !== 'all') {
+                if (reportState.fundsFilter === 'self') {
+                    filteredReports = filteredReports.filter(r => r.selfPaid);
+                } else if (reportState.fundsFilter === 'reserve') {
+                    filteredReports = filteredReports.filter(r => r.usedReserve);
+                }
             }
             
             return filteredReports;
