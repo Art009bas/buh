@@ -852,19 +852,19 @@
             
             switch(sortType) {
                 case 'newest':
-                    sortedOperations.sort((a, b) => b.id - a.id);
+                    sortedOperations.sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
                     break;
                 case 'oldest':
-                    sortedOperations.sort((a, b) => a.id - b.id);
+                    sortedOperations.sort((a, b) => new Date(a.date) - new Date(b.date) || a.id - b.id);
                     break;
                 case 'amount_high':
-                    sortedOperations.sort((a, b) => b.amount - a.amount);
+                    sortedOperations.sort((a, b) => b.amount - a.amount || new Date(b.date) - new Date(a.date));
                     break;
                 case 'amount_low':
-                    sortedOperations.sort((a, b) => a.amount - b.amount);
+                    sortedOperations.sort((a, b) => a.amount - b.amount || new Date(a.date) - new Date(b.date));
                     break;
                 default:
-                    sortedOperations.sort((a, b) => b.id - a.id);
+                    sortedOperations.sort((a, b) => new Date(b.date) - new Date(a.date) || b.id - a.id);
             }
             
             if (sortedOperations.length === 0) {
