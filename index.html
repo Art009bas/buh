@@ -1403,9 +1403,11 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                 filteredReports = filteredReports.filter(r => r.paymentMethod === reportState.filter);
             }
             
-            // Фильтрация по статусу
+            // Фильтрация по статусу (исключаем отчеты из запаса)
             if (reportState.statusFilter !== 'all') {
-                filteredReports = filteredReports.filter(r => r.status === reportState.statusFilter);
+                filteredReports = filteredReports.filter(r => 
+                    r.status === reportState.statusFilter && !r.usedReserve
+                );
             }
 
             // Фильтрация по типу средств
@@ -1526,9 +1528,11 @@ if (selfPaidCheckbox && useReserveCheckbox) {
                                 <span class="px-2 py-1 ${paymentMethodClass} text-xs rounded-full">
                                     <i class="fas ${paymentMethodIcon} mr-1"></i> ${report.paymentMethod === 'cash' ? 'Нал' : 'Счёт'}
                                 </span>
+                                ${report.usedReserve ? '' : `
                                 <span class="status-badge px-2 py-1 ${statusClass} text-xs rounded-full" data-id="${report.id}">
                                     <i class="fas ${statusIcon} mr-1"></i> ${statusText}
                                 </span>
+                                `}
                                 ${selfPaidBadge}
                                 ${reserveBadge}
                                 ${filePreview}
